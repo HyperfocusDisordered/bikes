@@ -1,31 +1,35 @@
 # Детальное дерево проекта Bikes
 
+> 💡 **Все ссылки кликабельны** - нажмите на них для перехода к коду в IDE
+
 ## 📊 Архитектура приложения
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    bikes.core/main                          │
-│                    (точка входа)                            │
+│  [bikes.core/main](src/bikes/core.cljd#L6)                  │
+│  (точка входа)                                               │
 └────────────────────┬────────────────────────────────────────┘
                      │
                      ▼
 ┌─────────────────────────────────────────────────────────────┐
-│              bikes.app/app                                   │
+│  [bikes.app/app](src/bikes/app.cljd#L9)                     │
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │ MaterialApp                                          │   │
 │  │  ├─ Theme: Blue, Material3                          │   │
 │  │  ├─ Routes:                                          │   │
-│  │  │   ├─ "/" → home-screen                           │   │
-│  │  │   ├─ "/qr-scanner" → qr-scanner-screen           │   │
-│  │  │   └─ "/rental" → bike-rental-screen              │   │
-│  │  └─ Home: home-screen                                │   │
+│  │  │   ├─ "/" → [home-screen](src/bikes/screens/home.cljd#L7) │
+│  │  │   ├─ "/qr-scanner" → [qr-scanner-screen](src/bikes/screens/qr_scanner.cljd#L8) │
+│  │  │   └─ "/rental" → [bike-rental-screen](src/bikes/screens/bike_rental.cljd#L7) │
+│  │  └─ Home: [home-screen](src/bikes/screens/home.cljd#L7) │
 │  └──────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🏠 ЭКРАН: home-screen (bikes.screens.home)
+## 🏠 ЭКРАН: [home-screen](src/bikes/screens/home.cljd#L7) (bikes.screens.home)
+
+**Файл:** [`src/bikes/screens/home.cljd`](src/bikes/screens/home.cljd)
 
 ### Структура компонентов:
 
@@ -61,7 +65,7 @@ home-screen
 │        │     │           ⚠️ TODO: Навигация на /qr-scanner
 │        │     │
 │        │     └─ 📦 Current Rental Card (conditional)
-│        │        └─ Card (показывается если @state/current-rental)
+│        │        └─ Card (показывается если [@state/current-rental](src/bikes/state/app_state.cljd#L4))
 │        │           └─ ListTile
 │        │              ├─ Leading: Bike icon (32px, green)
 │        │              ├─ Title: "Current Rental"
@@ -86,19 +90,21 @@ home-screen
 ```
 
 ### Используемое состояние:
-- `@state/current-rental` - проверка наличия активной аренды
+- [`@state/current-rental`](src/bikes/state/app_state.cljd#L4) - проверка наличия активной аренды
 
 ### API вызовы:
-- ❌ Нет (TODO: `api/get-current-rental` для проверки активной аренды)
+- ❌ Нет (TODO: [`api/get-current-rental`](src/bikes/services/api.cljd#L29) для проверки активной аренды)
 - ❌ Нет (TODO: API для получения статистики пользователя)
 
 ### Навигация:
-- ⚠️ TODO: `/qr-scanner` - при нажатии на "Scan QR Code"
-- ⚠️ TODO: `/rental` - при нажатии на "Current Rental"
+- ⚠️ TODO: `/qr-scanner` - при нажатии на "Scan QR Code" → [`qr-scanner-screen`](src/bikes/screens/qr_scanner.cljd#L8)
+- ⚠️ TODO: `/rental` - при нажатии на "Current Rental" → [`bike-rental-screen`](src/bikes/screens/bike_rental.cljd#L7)
 
 ---
 
-## 📷 ЭКРАН: qr-scanner-screen (bikes.screens.qr-scanner)
+## 📷 ЭКРАН: [qr-scanner-screen](src/bikes/screens/qr_scanner.cljd#L8) (bikes.screens.qr-scanner)
+
+**Файл:** [`src/bikes/screens/qr_scanner.cljd`](src/bikes/screens/qr_scanner.cljd)
 
 ### Структура компонентов:
 
@@ -144,7 +150,7 @@ qr-scanner-screen
 │        │     └─ onPressed:
 │        │        ├─ Генерирует fake-qr-code: "BIKE-{random}"
 │        │        ├─ reset! scanned-code → fake-qr-code
-│        │        ├─ state/set-current-bike
+│        │        ├─ [state/set-current-bike](src/bikes/state/app_state.cljd#L9)
 │        │        │  └─ {:id fake-qr-code
 │        │        │     :location "Current Location"
 │        │        │     :battery 50-100%}
@@ -152,7 +158,7 @@ qr-scanner-screen
 │        │           ⚠️ TODO: Навигация на /rental
 │        │
 │        ├─ 📲 PWA Install Prompt (conditional)
-│        │  └─ pwa-install/install-prompt
+│        │  └─ [pwa-install/install-prompt](src/bikes/components/pwa_install.cljd#L5)
 │        │     (показывается если @show-install-prompt)
 │        │
 │        └─ 🔘 Install App Button
@@ -161,23 +167,25 @@ qr-scanner-screen
 ```
 
 ### Используемое состояние:
-- `@state/current-bike` - устанавливается через `state/set-current-bike`
+- [`@state/current-bike`](src/bikes/state/app_state.cljd#L5) - устанавливается через [`state/set-current-bike`](src/bikes/state/app_state.cljd#L9)
 - Локальные atoms: `scanned-code`, `show-install-prompt`, `scanning`
 
 ### API вызовы:
-- ❌ Нет (TODO: `api/get-bike-by-qr` после сканирования QR)
+- ❌ Нет (TODO: [`api/get-bike-by-qr`](src/bikes/services/api.cljd#L14) после сканирования QR)
 - ⚠️ Сейчас: симуляция через локальное состояние
 
 ### Навигация:
 - ⚠️ TODO: Назад - при нажатии на Back button
-- ⚠️ TODO: `/rental` - после успешного сканирования QR
+- ⚠️ TODO: `/rental` - после успешного сканирования QR → [`bike-rental-screen`](src/bikes/screens/bike_rental.cljd#L7)
 
 ### Компоненты:
-- `pwa-install/install-prompt` - промпт установки PWA
+- [`pwa-install/install-prompt`](src/bikes/components/pwa_install.cljd#L5) - промпт установки PWA
 
 ---
 
-## 🚴 ЭКРАН: bike-rental-screen (bikes.screens.bike-rental)
+## 🚴 ЭКРАН: [bike-rental-screen](src/bikes/screens/bike_rental.cljd#L7) (bikes.screens.bike-rental)
+
+**Файл:** [`src/bikes/screens/bike_rental.cljd`](src/bikes/screens/bike_rental.cljd)
 
 ### Структура компонентов:
 
@@ -188,8 +196,8 @@ bike-rental-screen
 │  └─ loading (atom false)
 │
 ├─ Reads State:
-│  ├─ bike = @state/current-bike
-│  └─ rental = @state/current-rental
+│  ├─ bike = [@state/current-bike](src/bikes/state/app_state.cljd#L5)
+│  └─ rental = [@state/current-rental](src/bikes/state/app_state.cljd#L4)
 │
 ├─ Scaffold
 │  ├─ AppBar
@@ -223,7 +231,7 @@ bike-rental-screen
 │     │        │           ├─ Text: "Rental Active" (18px, bold, green)
 │     │        │           ├─ Text: "Started: {:start-time rental}" (14px)
 │     │        │           └─ Text: "Duration: {:duration rental} min" (14px)
-│     │        │              ⚠️ TODO: Форматирование времени через helpers
+│     │        │              ⚠️ TODO: Форматирование времени через [helpers/format-time](src/bikes/utils/helpers.cljd#L15)
 │     │        │
 │     │        ├─ 🔘 Action Buttons
 │     │        │  └─ Column (spacing: 12)
@@ -235,10 +243,10 @@ bike-rental-screen
 │     │        │     │  │     └─ onPressed:
 │     │        │     │  │        ├─ reset! loading → true
 │     │        │     │  │        ├─ setTimeout (1000ms):
-│     │        │     │  │        │  ├─ state/clear-rental
+│     │        │     │  │        │  ├─ [state/clear-rental](src/bikes/state/app_state.cljd#L15)
 │     │        │     │  │        │  │  └─ Очищает current-rental и current-bike
 │     │        │     │  │        │  └─ reset! loading → false
-│     │        │     │  │        ⚠️ TODO: api/end-rental
+│     │        │     │  │        ⚠️ TODO: [api/end-rental](src/bikes/services/api.cljd#L24)
 │     │        │     │  │
 │     │        │     │  └─ Иначе (нет rental):
 │     │        │     │     └─ ElevatedButton (green background)
@@ -246,12 +254,12 @@ bike-rental-screen
 │     │        │     │        └─ onPressed:
 │     │        │     │           ├─ reset! loading → true
 │     │        │     │           ├─ setTimeout (1000ms):
-│     │        │     │           │  ├─ state/set-current-rental
+│     │        │     │           │  ├─ [state/set-current-rental](src/bikes/state/app_state.cljd#L12)
 │     │        │     │           │  │  └─ {:id (random-uuid)
 │     │        │     │           │  │     :start-time (js/Date.now)
 │     │        │     │           │  │     :duration 0}
 │     │        │     │           │  └─ reset! loading → false
-│     │        │     │           ⚠️ TODO: api/start-rental
+│     │        │     │           │  ⚠️ TODO: [api/start-rental](src/bikes/services/api.cljd#L19)
 │     │        │     │
 │     │        │     └─ Loading Indicator (conditional)
 │     │        │        └─ CircularProgressIndicator (если @loading)
@@ -273,27 +281,29 @@ bike-rental-screen
 │              └─ ElevatedButton
 │                 ├─ Text: "Scan QR Code"
 │                 └─ onPressed: js/console.log("Scan QR")
-│                    ⚠️ TODO: Навигация на /qr-scanner
+│                    ⚠️ TODO: Навигация на [qr-scanner-screen](src/bikes/screens/qr_scanner.cljd#L8)
 ```
 
 ### Используемое состояние:
-- `@state/current-bike` - чтение данных о байке
-- `@state/current-rental` - чтение/запись данных аренды
-- `state/set-current-rental` - установка аренды
-- `state/clear-rental` - очистка аренды и байка
+- [`@state/current-bike`](src/bikes/state/app_state.cljd#L5) - чтение данных о байке
+- [`@state/current-rental`](src/bikes/state/app_state.cljd#L4) - чтение/запись данных аренды
+- [`state/set-current-rental`](src/bikes/state/app_state.cljd#L12) - установка аренды
+- [`state/clear-rental`](src/bikes/state/app_state.cljd#L15) - очистка аренды и байка
 
 ### API вызовы:
-- ❌ TODO: `api/start-rental` - при нажатии "Start Rental"
-- ❌ TODO: `api/end-rental` - при нажатии "End Rental"
+- ❌ TODO: [`api/start-rental`](src/bikes/services/api.cljd#L19) - при нажатии "Start Rental"
+- ❌ TODO: [`api/end-rental`](src/bikes/services/api.cljd#L24) - при нажатии "End Rental"
 - ⚠️ Сейчас: симуляция через локальное состояние
 
 ### Навигация:
 - ⚠️ TODO: Назад - при нажатии на Back button
-- ⚠️ TODO: `/qr-scanner` - если байк не выбран
+- ⚠️ TODO: [`/qr-scanner`](src/bikes/screens/qr_scanner.cljd#L8) - если байк не выбран
 
 ---
 
-## 📲 КОМПОНЕНТ: install-prompt (bikes.components.pwa-install)
+## 📲 КОМПОНЕНТ: [install-prompt](src/bikes/components/pwa_install.cljd#L5) (bikes.components.pwa-install)
+
+**Файл:** [`src/bikes/components/pwa_install.cljd`](src/bikes/components/pwa_install.cljd)
 
 ### Структура компонентов:
 
@@ -338,46 +348,48 @@ install-prompt
 
 ## 🌐 СЕРВИС: API (bikes.services.api)
 
+**Файл:** [`src/bikes/services/api.cljd`](src/bikes/services/api.cljd)
+
 ### Функции и их использование:
 
 ```
 api/
 │
-├─ 🔧 request (базовый HTTP запрос)
+├─ 🔧 [request](src/bikes/services/api.cljd#L7) (базовый HTTP запрос)
 │  └─ Параметры: method, endpoint, data
 │  └─ Использование: внутренняя функция
 │  └─ Статус: ⚠️ TODO - реализация через http пакет
 │
-├─ 📍 get-bike-by-qr
+├─ 📍 [get-bike-by-qr](src/bikes/services/api.cljd#L14)
 │  └─ Параметры: qr-code (string)
 │  └─ Endpoint: GET /bikes/{qr-code}
 │  └─ Использование: 
-│     ❌ НЕ ИСПОЛЬЗУЕТСЯ (TODO в qr-scanner-screen)
+│     ❌ НЕ ИСПОЛЬЗУЕТСЯ (TODO в [qr-scanner-screen](src/bikes/screens/qr_scanner.cljd#L8))
 │  └─ Статус: ⚠️ TODO
 │
-├─ ▶️ start-rental
+├─ ▶️ [start-rental](src/bikes/services/api.cljd#L19)
 │  └─ Параметры: bike-id, user-id
 │  └─ Endpoint: POST /rentals/start
 │  └─ Body: {:bike-id bike-id :user-id user-id}
 │  └─ Использование:
-│     ❌ НЕ ИСПОЛЬЗУЕТСЯ (TODO в bike-rental-screen)
+│     ❌ НЕ ИСПОЛЬЗУЕТСЯ (TODO в [bike-rental-screen](src/bikes/screens/bike_rental.cljd#L7))
 │  └─ Статус: ⚠️ TODO
 │
-├─ ⏹️ end-rental
+├─ ⏹️ [end-rental](src/bikes/services/api.cljd#L24)
 │  └─ Параметры: rental-id
 │  └─ Endpoint: POST /rentals/{rental-id}/end
 │  └─ Использование:
-│     ❌ НЕ ИСПОЛЬЗУЕТСЯ (TODO в bike-rental-screen)
+│     ❌ НЕ ИСПОЛЬЗУЕТСЯ (TODO в [bike-rental-screen](src/bikes/screens/bike_rental.cljd#L7))
 │  └─ Статус: ⚠️ TODO
 │
-├─ 📊 get-current-rental
+├─ 📊 [get-current-rental](src/bikes/services/api.cljd#L29)
 │  └─ Параметры: user-id
 │  └─ Endpoint: GET /rentals/current?user-id={user-id}
 │  └─ Использование:
-│     ❌ НЕ ИСПОЛЬЗУЕТСЯ (TODO в home-screen)
+│     ❌ НЕ ИСПОЛЬЗУЕТСЯ (TODO в [home-screen](src/bikes/screens/home.cljd#L7))
 │  └─ Статус: ⚠️ TODO
 │
-└─ 🔐 authenticate
+└─ 🔐 [authenticate](src/bikes/services/api.cljd#L34)
    └─ Параметры: phone-number
    └─ Endpoint: POST /auth/login
    └─ Body: {:phone phone-number}
@@ -387,103 +399,107 @@ api/
 ```
 
 ### Base URL:
-- `https://api.bikes.example.com` (⚠️ TODO: заменить на реальный)
+- [`api-base-url`](src/bikes/services/api.cljd#L5): `https://api.bikes.example.com` (⚠️ TODO: заменить на реальный)
 
 ---
 
 ## 📡 СЕРВИС: Bluetooth (bikes.services.bluetooth)
+
+**Файл:** [`src/bikes/services/bluetooth.cljd`](src/bikes/services/bluetooth.cljd)
 
 ### Функции и их использование:
 
 ```
 bluetooth/
 │
-├─ 🔍 scan-for-devices
+├─ 🔍 [scan-for-devices](src/bikes/services/bluetooth.cljd#L23)
 │  └─ Параметры: нет
 │  └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ
 │  └─ Статус: ⚠️ TODO - реализация через flutter_blue_plus
 │
-├─ 🔌 connect-to-device
+├─ 🔌 [connect-to-device](src/bikes/services/bluetooth.cljd#L29)
 │  └─ Параметры: device-id
 │  └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ
 │  └─ Статус: ⚠️ TODO
 │
-├─ 🔓 unlock-bike
+├─ 🔓 [unlock-bike](src/bikes/services/bluetooth.cljd#L35)
 │  └─ Параметры: device-id
-│  └─ Команда: 0x02 (unlock-command)
+│  └─ Команда: [0x02](src/bikes/services/bluetooth.cljd#L15) ([unlock-command](src/bikes/services/bluetooth.cljd#L15))
 │  └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ
 │  └─ Статус: ⚠️ TODO
 │
-├─ 🔒 lock-bike
+├─ 🔒 [lock-bike](src/bikes/services/bluetooth.cljd#L41)
 │  └─ Параметры: device-id
-│  └─ Команда: 0x01 (lock-command)
+│  └─ Команда: [0x01](src/bikes/services/bluetooth.cljd#L14) ([lock-command](src/bikes/services/bluetooth.cljd#L14))
 │  └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ
 │  └─ Статус: ⚠️ TODO
 │
-├─ 📊 get-bike-status
-│  └─ Параметры: device-id
-│  └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ
-│  └─ Статус: ⚠️ TODO
-│
-├─ 🔋 get-battery-level
+├─ 📊 [get-bike-status](src/bikes/services/bluetooth.cljd#L47)
 │  └─ Параметры: device-id
 │  └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ
 │  └─ Статус: ⚠️ TODO
 │
-└─ 📡 subscribe-to-status
+├─ 🔋 [get-battery-level](src/bikes/services/bluetooth.cljd#L53)
+│  └─ Параметры: device-id
+│  └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ
+│  └─ Статус: ⚠️ TODO
+│
+└─ 📡 [subscribe-to-status](src/bikes/services/bluetooth.cljd#L59)
    └─ Параметры: device-id, callback
    └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ
    └─ Статус: ⚠️ TODO
 ```
 
 ### BLE Константы:
-- Service UUID: `0000ff00-0000-1000-8000-00805f9b34fb`
-- Lock Control UUID: `0000ff01-0000-1000-8000-00805f9b34fb` (WRITE)
-- Lock Status UUID: `0000ff02-0000-1000-8000-00805f9b34fb` (READ/NOTIFY)
-- Battery Level UUID: `0000ff03-0000-1000-8000-00805f9b34fb` (READ/NOTIFY)
+- Service UUID: [`lock-service-uuid`](src/bikes/services/bluetooth.cljd#L6) = `0000ff00-0000-1000-8000-00805f9b34fb`
+- Lock Control UUID: [`lock-control-uuid`](src/bikes/services/bluetooth.cljd#L9) = `0000ff01-0000-1000-8000-00805f9b34fb` (WRITE)
+- Lock Status UUID: [`lock-status-uuid`](src/bikes/services/bluetooth.cljd#L10) = `0000ff02-0000-1000-8000-00805f9b34fb` (READ/NOTIFY)
+- Battery Level UUID: [`battery-level-uuid`](src/bikes/services/bluetooth.cljd#L11) = `0000ff03-0000-1000-8000-00805f9b34fb` (READ/NOTIFY)
 
 ### Команды:
-- Lock: `0x01`
-- Unlock: `0x02`
-- Status: `0x03`
+- Lock: [`lock-command`](src/bikes/services/bluetooth.cljd#L14) = `0x01`
+- Unlock: [`unlock-command`](src/bikes/services/bluetooth.cljd#L15) = `0x02`
+- Status: [`status-command`](src/bikes/services/bluetooth.cljd#L16) = `0x03`
 
 ### Статусы:
-- Locked: `0x00`
-- Unlocked: `0x01`
-- Error: `0x02`
+- Locked: [`status-locked`](src/bikes/services/bluetooth.cljd#L19) = `0x00`
+- Unlocked: [`status-unlocked`](src/bikes/services/bluetooth.cljd#L20) = `0x01`
+- Error: [`status-error`](src/bikes/services/bluetooth.cljd#L21) = `0x02`
 
 ---
 
 ## 💾 СОСТОЯНИЕ: app-state (bikes.state.app-state)
+
+**Файл:** [`src/bikes/state/app_state.cljd`](src/bikes/state/app_state.cljd)
 
 ### Атомы:
 
 ```
 app-state/
 │
-├─ current-rental (atom nil)
+├─ [current-rental](src/bikes/state/app_state.cljd#L4) (atom nil)
 │  └─ Структура: {:id uuid
 │                 :start-time timestamp
 │                 :duration minutes}
 │  └─ Использование:
-│     ├─ Чтение: home-screen, bike-rental-screen
-│     ├─ Запись: bike-rental-screen (set-current-rental)
-│     └─ Очистка: bike-rental-screen (clear-rental)
+│     ├─ Чтение: [home-screen](src/bikes/screens/home.cljd#L7), [bike-rental-screen](src/bikes/screens/bike_rental.cljd#L7)
+│     ├─ Запись: [bike-rental-screen](src/bikes/screens/bike_rental.cljd#L7) ([set-current-rental](src/bikes/state/app_state.cljd#L12))
+│     └─ Очистка: [bike-rental-screen](src/bikes/screens/bike_rental.cljd#L7) ([clear-rental](src/bikes/state/app_state.cljd#L15))
 │
-├─ current-bike (atom nil)
+├─ [current-bike](src/bikes/state/app_state.cljd#L5) (atom nil)
 │  └─ Структура: {:id string
 │                 :location string
 │                 :battery number}
 │  └─ Использование:
-│     ├─ Чтение: bike-rental-screen
-│     ├─ Запись: qr-scanner-screen (set-current-bike)
-│     └─ Очистка: bike-rental-screen (clear-rental)
+│     ├─ Чтение: [bike-rental-screen](src/bikes/screens/bike_rental.cljd#L7)
+│     ├─ Запись: [qr-scanner-screen](src/bikes/screens/qr_scanner.cljd#L8) ([set-current-bike](src/bikes/state/app_state.cljd#L9))
+│     └─ Очистка: [bike-rental-screen](src/bikes/screens/bike_rental.cljd#L7) ([clear-rental](src/bikes/state/app_state.cljd#L15))
 │
-├─ user (atom nil)
+├─ [user](src/bikes/state/app_state.cljd#L6) (atom nil)
 │  └─ Структура: TODO
 │  └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ
 │
-└─ pwa-installed (atom false)
+└─ [pwa-installed](src/bikes/state/app_state.cljd#L7) (atom false)
    └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ
 ```
 
@@ -492,20 +508,20 @@ app-state/
 ```
 app-state/
 │
-├─ set-current-bike [bike-data]
-│  └─ Вызывается: qr-scanner-screen
+├─ [set-current-bike](src/bikes/state/app_state.cljd#L9) [bike-data]
+│  └─ Вызывается: [qr-scanner-screen](src/bikes/screens/qr_scanner.cljd#L8)
 │
-├─ set-current-rental [rental-data]
-│  └─ Вызывается: bike-rental-screen
+├─ [set-current-rental](src/bikes/state/app_state.cljd#L12) [rental-data]
+│  └─ Вызывается: [bike-rental-screen](src/bikes/screens/bike_rental.cljd#L7)
 │
-├─ clear-rental []
-│  └─ Вызывается: bike-rental-screen
+├─ [clear-rental](src/bikes/state/app_state.cljd#L15) []
+│  └─ Вызывается: [bike-rental-screen](src/bikes/screens/bike_rental.cljd#L7)
 │  └─ Очищает: current-rental и current-bike
 │
-├─ set-user [user-data]
+├─ [set-user](src/bikes/state/app_state.cljd#L19) [user-data]
 │  └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ
 │
-└─ set-pwa-installed [installed?]
+└─ [set-pwa-installed](src/bikes/state/app_state.cljd#L22) [installed?]
    └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ
 ```
 
@@ -513,26 +529,28 @@ app-state/
 
 ## 🔧 УТИЛИТЫ: helpers (bikes.utils.helpers)
 
+**Файл:** [`src/bikes/utils/helpers.cljd`](src/bikes/utils/helpers.cljd)
+
 ### Функции:
 
 ```
 helpers/
 │
-├─ format-duration [minutes]
+├─ [format-duration](src/bikes/utils/helpers.cljd#L4) [minutes]
 │  └─ Форматирует минуты в "X min" или "X h Y min"
-│  └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ (TODO в bike-rental-screen)
+│  └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ (TODO в [bike-rental-screen](src/bikes/screens/bike_rental.cljd#L7))
 │
-├─ format-time [timestamp]
+├─ [format-time](src/bikes/utils/helpers.cljd#L15) [timestamp]
 │  └─ Форматирует timestamp в читаемый формат
-│  └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ (TODO в bike-rental-screen)
+│  └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ (TODO в [bike-rental-screen](src/bikes/screens/bike_rental.cljd#L7))
 │
-├─ generate-id []
+├─ [generate-id](src/bikes/utils/helpers.cljd#L21) []
 │  └─ Генерирует случайный UUID
 │  └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ
 │
-└─ validate-qr-code [code]
+└─ [validate-qr-code](src/bikes/utils/helpers.cljd#L26) [code]
    └─ Проверяет формат QR кода (BIKE-{number})
-   └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ (TODO в qr-scanner-screen)
+   └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ (TODO в [qr-scanner-screen](src/bikes/screens/qr_scanner.cljd#L8))
 ```
 
 ---
@@ -542,45 +560,45 @@ helpers/
 ### Поток 1: Сканирование QR и начало аренды
 
 ```
-1. Пользователь открывает qr-scanner-screen
+1. Пользователь открывает [qr-scanner-screen](src/bikes/screens/qr_scanner.cljd#L8)
    │
 2. Нажимает "Simulate QR Scan" (или сканирует реальный QR)
    │
 3. qr-scanner-screen:
    ├─ Генерирует fake-qr-code
    ├─ reset! scanned-code → fake-qr-code
-   └─ state/set-current-bike
+   └─ [state/set-current-bike](src/bikes/state/app_state.cljd#L9)
       └─ Устанавливает current-bike в app-state
    │
-4. ⚠️ TODO: api/get-bike-by-qr(fake-qr-code)
+4. ⚠️ TODO: [api/get-bike-by-qr](src/bikes/services/api.cljd#L14)(fake-qr-code)
    │  └─ Получение данных о байке с сервера
    │
 5. Навигация на /rental
    │
-6. bike-rental-screen читает @state/current-bike
+6. [bike-rental-screen](src/bikes/screens/bike_rental.cljd#L7) читает [@state/current-bike](src/bikes/state/app_state.cljd#L5)
    │
 7. Пользователь нажимает "Start Rental"
    │
 8. bike-rental-screen:
    ├─ reset! loading → true
-   ├─ state/set-current-rental
+   ├─ [state/set-current-rental](src/bikes/state/app_state.cljd#L12)
    │  └─ Устанавливает rental в app-state
-   └─ ⚠️ TODO: api/start-rental(bike-id, user-id)
+   └─ ⚠️ TODO: [api/start-rental](src/bikes/services/api.cljd#L19)(bike-id, user-id)
       └─ Отправка запроса на сервер
 ```
 
 ### Поток 2: Завершение аренды
 
 ```
-1. Пользователь на bike-rental-screen с активной арендой
+1. Пользователь на [bike-rental-screen](src/bikes/screens/bike_rental.cljd#L7) с активной арендой
    │
 2. Нажимает "End Rental"
    │
 3. bike-rental-screen:
    ├─ reset! loading → true
-   ├─ ⚠️ TODO: api/end-rental(rental-id)
+   ├─ ⚠️ TODO: [api/end-rental](src/bikes/services/api.cljd#L24)(rental-id)
    │  └─ Отправка запроса на сервер
-   ├─ state/clear-rental
+   ├─ [state/clear-rental](src/bikes/state/app_state.cljd#L15)
    │  └─ Очищает current-rental и current-bike
    └─ reset! loading → false
    │
@@ -590,11 +608,11 @@ helpers/
 ### Поток 3: Проверка активной аренды
 
 ```
-1. Пользователь открывает home-screen
+1. Пользователь открывает [home-screen](src/bikes/screens/home.cljd#L7)
    │
-2. home-screen читает @state/current-rental
+2. home-screen читает [@state/current-rental](src/bikes/state/app_state.cljd#L4)
    │
-3. ⚠️ TODO: api/get-current-rental(user-id)
+3. ⚠️ TODO: [api/get-current-rental](src/bikes/services/api.cljd#L29)(user-id)
    │  └─ Проверка активной аренды на сервере
    │
 4. Если есть активная аренда:
@@ -606,49 +624,49 @@ helpers/
 ## 📋 ЧЕКЛИСТ ИНТЕГРАЦИЙ
 
 ### API Интеграции:
-- [ ] `api/get-bike-by-qr` в qr-scanner-screen после сканирования
-- [ ] `api/start-rental` в bike-rental-screen при старте аренды
-- [ ] `api/end-rental` в bike-rental-screen при завершении
-- [ ] `api/get-current-rental` в home-screen при загрузке
-- [ ] `api/authenticate` - нужен экран логина
+- [ ] [`api/get-bike-by-qr`](src/bikes/services/api.cljd#L14) в [qr-scanner-screen](src/bikes/screens/qr_scanner.cljd#L8) после сканирования
+- [ ] [`api/start-rental`](src/bikes/services/api.cljd#L19) в [bike-rental-screen](src/bikes/screens/bike_rental.cljd#L7) при старте аренды
+- [ ] [`api/end-rental`](src/bikes/services/api.cljd#L24) в [bike-rental-screen](src/bikes/screens/bike_rental.cljd#L7) при завершении
+- [ ] [`api/get-current-rental`](src/bikes/services/api.cljd#L29) в [home-screen](src/bikes/screens/home.cljd#L7) при загрузке
+- [ ] [`api/authenticate`](src/bikes/services/api.cljd#L34) - нужен экран логина
 
 ### Навигация:
-- [ ] Навигация на `/qr-scanner` из home-screen
-- [ ] Навигация на `/rental` из home-screen (если есть аренда)
-- [ ] Навигация на `/rental` из qr-scanner-screen после сканирования
-- [ ] Навигация назад из qr-scanner-screen
-- [ ] Навигация назад из bike-rental-screen
-- [ ] Навигация на `/qr-scanner` из bike-rental-screen (если нет байка)
+- [ ] Навигация на `/qr-scanner` из [home-screen](src/bikes/screens/home.cljd#L7)
+- [ ] Навигация на `/rental` из [home-screen](src/bikes/screens/home.cljd#L7) (если есть аренда)
+- [ ] Навигация на `/rental` из [qr-scanner-screen](src/bikes/screens/qr_scanner.cljd#L8) после сканирования
+- [ ] Навигация назад из [qr-scanner-screen](src/bikes/screens/qr_scanner.cljd#L8)
+- [ ] Навигация назад из [bike-rental-screen](src/bikes/screens/bike_rental.cljd#L7)
+- [ ] Навигация на `/qr-scanner` из [bike-rental-screen](src/bikes/screens/bike_rental.cljd#L7) (если нет байка)
 
 ### Bluetooth Интеграции:
-- [ ] `bluetooth/scan-for-devices` - поиск блокировщиков
-- [ ] `bluetooth/connect-to-device` - подключение к блокировщику
-- [ ] `bluetooth/unlock-bike` - разблокировка байка
-- [ ] `bluetooth/lock-bike` - блокировка байка
-- [ ] `bluetooth/get-bike-status` - получение статуса
-- [ ] `bluetooth/get-battery-level` - получение уровня батареи
-- [ ] `bluetooth/subscribe-to-status` - подписка на обновления
+- [ ] [`bluetooth/scan-for-devices`](src/bikes/services/bluetooth.cljd#L23) - поиск блокировщиков
+- [ ] [`bluetooth/connect-to-device`](src/bikes/services/bluetooth.cljd#L29) - подключение к блокировщику
+- [ ] [`bluetooth/unlock-bike`](src/bikes/services/bluetooth.cljd#L35) - разблокировка байка
+- [ ] [`bluetooth/lock-bike`](src/bikes/services/bluetooth.cljd#L41) - блокировка байка
+- [ ] [`bluetooth/get-bike-status`](src/bikes/services/bluetooth.cljd#L47) - получение статуса
+- [ ] [`bluetooth/get-battery-level`](src/bikes/services/bluetooth.cljd#L53) - получение уровня батареи
+- [ ] [`bluetooth/subscribe-to-status`](src/bikes/services/bluetooth.cljd#L59) - подписка на обновления
 
 ### Утилиты:
-- [ ] `helpers/format-duration` в bike-rental-screen
-- [ ] `helpers/format-time` в bike-rental-screen
-- [ ] `helpers/validate-qr-code` в qr-scanner-screen
+- [ ] [`helpers/format-duration`](src/bikes/utils/helpers.cljd#L4) в [bike-rental-screen](src/bikes/screens/bike_rental.cljd#L7)
+- [ ] [`helpers/format-time`](src/bikes/utils/helpers.cljd#L15) в [bike-rental-screen](src/bikes/screens/bike_rental.cljd#L7)
+- [ ] [`helpers/validate-qr-code`](src/bikes/utils/helpers.cljd#L26) в [qr-scanner-screen](src/bikes/screens/qr_scanner.cljd#L8)
 
 ### PWA:
-- [ ] PWA Install API в install-prompt
+- [ ] PWA Install API в [install-prompt](src/bikes/components/pwa_install.cljd#L5)
 - [ ] Проверка установки PWA при загрузке
-- [ ] Обновление `pwa-installed` в app-state
+- [ ] Обновление [`pwa-installed`](src/bikes/state/app_state.cljd#L7) в app-state
 
 ---
 
 ## 📊 СТАТИСТИКА ПРОЕКТА
 
 - **Всего файлов ClojureDart**: 11
-- **Экранов**: 3 (home, qr-scanner, bike-rental)
-- **Компонентов**: 1 (pwa-install)
-- **Сервисов**: 2 (api, bluetooth)
-- **Утилит**: 1 (helpers)
-- **Состояние**: 4 атома (current-rental, current-bike, user, pwa-installed)
+- **Экранов**: 3 ([home](src/bikes/screens/home.cljd), [qr-scanner](src/bikes/screens/qr_scanner.cljd), [bike-rental](src/bikes/screens/bike_rental.cljd))
+- **Компонентов**: 1 ([pwa-install](src/bikes/components/pwa_install.cljd))
+- **Сервисов**: 2 ([api](src/bikes/services/api.cljd), [bluetooth](src/bikes/services/bluetooth.cljd))
+- **Утилит**: 1 ([helpers](src/bikes/utils/helpers.cljd))
+- **Состояние**: 4 атома ([current-rental](src/bikes/state/app_state.cljd#L4), [current-bike](src/bikes/state/app_state.cljd#L5), [user](src/bikes/state/app_state.cljd#L6), [pwa-installed](src/bikes/state/app_state.cljd#L7))
 
 ### Статус реализации:
 - ✅ Структура: 100%
@@ -659,5 +677,4 @@ helpers/
 
 ---
 
-*Последнее обновление: при создании документа*
-
+*Последнее обновление: добавлены интерактивные ссылки на файлы и функции*
