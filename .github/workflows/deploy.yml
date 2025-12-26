@@ -1,0 +1,59 @@
+name: Build and Deploy Flutter Web
+
+on:
+  push:
+    branches:
+      - main  # или master, в зависимости от вашей ветки
+  workflow_dispatch:  # Позволяет запускать вручную
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Java (для Clojure)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      
+      - name: Setup Clojure
+        uses: DeLaGuardo/setup-clojure@v13
+        with:
+          clojure-version: '1.11.1'
+          tools-deps: true
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'  # Проверьте актуальную версию
+          channel: 'stable'
+      
+      - name: Install dependencies
+        run: |
+          flutter pub get
+      
+      - name: Build ClojureDart (если нужно)
+        run: |
+          # ClojureDart компилируется автоматически при сборке Flutter
+          # Но можно добавить проверку:
+          clj -M:dev -m cljd.build check || echo "ClojureDart check skipped"
+      
+      - name: Build Flutter Web
+        run: |
+          flutter build web --release --base-href "/bikes/"  # Измените на ваш путь
+          # Если деплоите в корень домена, используйте:
+          # flutter build web --release
+      
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        if: github.ref == 'refs/heads/main'  # или master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./build/web
+          # Если используете кастомный домен:
+          # cname: yourdomain.com
+

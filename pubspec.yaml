@@ -1,0 +1,47 @@
+name: bikes
+description: Bike sharing PWA на ClojureDart/Flutter
+publish_to: 'none'
+version: 0.1.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # UI
+  cupertino_icons: ^1.0.6
+  
+  # PWA support
+  flutter_web_plugins:
+    sdk: flutter
+  
+  # QR Code scanner
+  qr_code_scanner: ^1.0.1
+  
+  # Bluetooth
+  flutter_blue_plus: ^1.30.0
+  
+  # Location
+  geolocator: ^11.0.0
+  
+  # HTTP requests
+  http: ^1.1.0
+  
+  # State management (можно использовать re-frame позже)
+  # или использовать встроенные возможности Flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  
+  # PWA assets
+  assets:
+    - assets/images/
+    - assets/icons/
+

@@ -1,0 +1,663 @@
+# Детальное дерево проекта Bikes
+
+## 📊 Архитектура приложения
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    bikes.core/main                          │
+│                    (точка входа)                            │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│              bikes.app/app                                   │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │ MaterialApp                                          │   │
+│  │  ├─ Theme: Blue, Material3                          │   │
+│  │  ├─ Routes:                                          │   │
+│  │  │   ├─ "/" → home-screen                           │   │
+│  │  │   ├─ "/qr-scanner" → qr-scanner-screen           │   │
+│  │  │   └─ "/rental" → bike-rental-screen              │   │
+│  │  └─ Home: home-screen                                │   │
+│  └──────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🏠 ЭКРАН: home-screen (bikes.screens.home)
+
+### Структура компонентов:
+
+```
+home-screen
+│
+├─ Scaffold
+│  ├─ AppBar
+│  │  └─ Title: "Bikes" (blue background)
+│  │
+│  └─ Body (Padding: 16)
+│     └─ Column (spacing: 24)
+│        │
+│        ├─ 📦 Welcome Card
+│        │  └─ Card (elevation: 2)
+│        │     └─ Padding (20)
+│        │        └─ Column (spacing: 12)
+│        │           ├─ Text: "Welcome to Bikes!" (24px, bold)
+│        │           └─ Text: "Scan QR code to start your ride" (14px, grey)
+│        │
+│        ├─ 📋 Quick Actions Section
+│        │  └─ Column (spacing: 12)
+│        │     ├─ Text: "Quick Actions" (18px, bold)
+│        │     │
+│        │     ├─ 📦 Scan QR Code Card
+│        │     │  └─ Card
+│        │     │     └─ ListTile
+│        │     │        ├─ Leading: QR icon (32px, blue)
+│        │     │        ├─ Title: "Scan QR Code"
+│        │     │        ├─ Subtitle: "Start a new rental"
+│        │     │        ├─ Trailing: ChevronRight icon
+│        │     │        └─ onTap: js/console.log("Navigate to QR scanner")
+│        │     │           ⚠️ TODO: Навигация на /qr-scanner
+│        │     │
+│        │     └─ 📦 Current Rental Card (conditional)
+│        │        └─ Card (показывается если @state/current-rental)
+│        │           └─ ListTile
+│        │              ├─ Leading: Bike icon (32px, green)
+│        │              ├─ Title: "Current Rental"
+│        │              ├─ Subtitle: "View active rental"
+│        │              ├─ Trailing: ChevronRight icon
+│        │              └─ onTap: js/console.log("Navigate to rental")
+│        │                 ⚠️ TODO: Навигация на /rental
+│        │
+│        └─ 📊 Stats Card
+│           └─ Card
+│              └─ Padding (16)
+│                 └─ Column (spacing: 12)
+│                    ├─ Text: "Your Stats" (18px, bold)
+│                    └─ Row (space-between)
+│                       ├─ Column (left)
+│                       │  ├─ Text: "Total Rides" (12px, grey)
+│                       │  └─ Text: "0" (24px, bold)
+│                       └─ Column (right)
+│                          ├─ Text: "Total Distance" (12px, grey)
+│                          └─ Text: "0 km" (24px, bold)
+│                          ⚠️ TODO: Получение данных через API
+```
+
+### Используемое состояние:
+- `@state/current-rental` - проверка наличия активной аренды
+
+### API вызовы:
+- ❌ Нет (TODO: `api/get-current-rental` для проверки активной аренды)
+- ❌ Нет (TODO: API для получения статистики пользователя)
+
+### Навигация:
+- ⚠️ TODO: `/qr-scanner` - при нажатии на "Scan QR Code"
+- ⚠️ TODO: `/rental` - при нажатии на "Current Rental"
+
+---
+
+## 📷 ЭКРАН: qr-scanner-screen (bikes.screens.qr-scanner)
+
+### Структура компонентов:
+
+```
+qr-scanner-screen
+│
+├─ Local State:
+│  ├─ scanned-code (atom nil)
+│  ├─ show-install-prompt (atom false)
+│  └─ scanning (atom true)
+│
+├─ Scaffold
+│  ├─ AppBar
+│  │  ├─ Title: "Scan QR Code" (blue background)
+│  │  └─ Leading: Back button
+│  │     └─ onPressed: js/console.log("Back")
+│  │        ⚠️ TODO: Навигация назад
+│  │
+│  └─ Body (Center)
+│     └─ Column (center, spacing: 24)
+│        │
+│        ├─ 📷 QR Scanner Container (300x300)
+│        │  └─ Container
+│        │     ├─ Decoration: Grey background, blue border (2px), radius 12
+│        │     └─ Center
+│        │        └─ Column (center, spacing: 16)
+│        │           ├─ QR Scanner Icon (64px, blue)
+│        │           └─ Conditional:
+│        │              ├─ Если scanned-code:
+│        │              │  └─ Column
+│        │              │     ├─ Text: "Code scanned!" (18px, bold, green)
+│        │              │     └─ Text: @scanned-code (14px, grey)
+│        │              └─ Иначе:
+│        │                 └─ Text: "Point camera at QR code" (16px, grey)
+│        │
+│        ├─ 📝 Instructions
+│        │  └─ Padding (horizontal: 32, vertical: 16)
+│        │     └─ Text: "Scan the QR code on the bike to start rental"
+│        │        (center, 14px, grey-700)
+│        │
+│        ├─ 🔘 Simulate QR Scan Button (TEST)
+│        │  └─ ElevatedButton
+│        │     └─ onPressed:
+│        │        ├─ Генерирует fake-qr-code: "BIKE-{random}"
+│        │        ├─ reset! scanned-code → fake-qr-code
+│        │        ├─ state/set-current-bike
+│        │        │  └─ {:id fake-qr-code
+│        │        │     :location "Current Location"
+│        │        │     :battery 50-100%}
+│        │        └─ setTimeout → js/console.log("Navigate to rental screen")
+│        │           ⚠️ TODO: Навигация на /rental
+│        │
+│        ├─ 📲 PWA Install Prompt (conditional)
+│        │  └─ pwa-install/install-prompt
+│        │     (показывается если @show-install-prompt)
+│        │
+│        └─ 🔘 Install App Button
+│           └─ TextButton
+│              └─ onPressed: reset! show-install-prompt → true
+```
+
+### Используемое состояние:
+- `@state/current-bike` - устанавливается через `state/set-current-bike`
+- Локальные atoms: `scanned-code`, `show-install-prompt`, `scanning`
+
+### API вызовы:
+- ❌ Нет (TODO: `api/get-bike-by-qr` после сканирования QR)
+- ⚠️ Сейчас: симуляция через локальное состояние
+
+### Навигация:
+- ⚠️ TODO: Назад - при нажатии на Back button
+- ⚠️ TODO: `/rental` - после успешного сканирования QR
+
+### Компоненты:
+- `pwa-install/install-prompt` - промпт установки PWA
+
+---
+
+## 🚴 ЭКРАН: bike-rental-screen (bikes.screens.bike-rental)
+
+### Структура компонентов:
+
+```
+bike-rental-screen
+│
+├─ Local State:
+│  └─ loading (atom false)
+│
+├─ Reads State:
+│  ├─ bike = @state/current-bike
+│  └─ rental = @state/current-rental
+│
+├─ Scaffold
+│  ├─ AppBar
+│  │  ├─ Title: "Bike Rental" (blue background)
+│  │  └─ Leading: Back button
+│  │     └─ onPressed: js/console.log("Back")
+│  │        ⚠️ TODO: Навигация назад
+│  │
+│  └─ Body (Conditional: если bike существует)
+│     │
+│     ├─ ✅ Если bike существует:
+│     │  └─ Padding (16)
+│     │     └─ Column (spacing: 24)
+│     │        │
+│     │        ├─ 📦 Bike Info Card
+│     │        │  └─ Card
+│     │        │     └─ Padding (16)
+│     │        │        └─ Column (spacing: 12)
+│     │        │           ├─ Text: "Bike #{:id bike}" (24px, bold)
+│     │        │           ├─ Row (spacing: 8)
+│     │        │           │  ├─ Location icon (16px, grey)
+│     │        │           │  └─ Text: {:location bike} (14px, grey)
+│     │        │           └─ Row (spacing: 8)
+│     │        │              ├─ Battery icon (16px, green)
+│     │        │              └─ Text: "Battery: {:battery bike}%" (14px, grey)
+│     │        │
+│     │        ├─ 📦 Rental Status Card (conditional)
+│     │        │  └─ Card (green-50 background, если rental)
+│     │        │     └─ Padding (16)
+│     │        │        └─ Column (spacing: 8)
+│     │        │           ├─ Text: "Rental Active" (18px, bold, green)
+│     │        │           ├─ Text: "Started: {:start-time rental}" (14px)
+│     │        │           └─ Text: "Duration: {:duration rental} min" (14px)
+│     │        │              ⚠️ TODO: Форматирование времени через helpers
+│     │        │
+│     │        ├─ 🔘 Action Buttons
+│     │        │  └─ Column (spacing: 12)
+│     │        │     │
+│     │        │     ├─ Conditional Button:
+│     │        │     │  ├─ Если rental существует:
+│     │        │     │  │  └─ ElevatedButton (red background)
+│     │        │     │  │     ├─ Text: "End Rental" (white)
+│     │        │     │  │     └─ onPressed:
+│     │        │     │  │        ├─ reset! loading → true
+│     │        │     │  │        ├─ setTimeout (1000ms):
+│     │        │     │  │        │  ├─ state/clear-rental
+│     │        │     │  │        │  │  └─ Очищает current-rental и current-bike
+│     │        │     │  │        │  └─ reset! loading → false
+│     │        │     │  │        ⚠️ TODO: api/end-rental
+│     │        │     │  │
+│     │        │     │  └─ Иначе (нет rental):
+│     │        │     │     └─ ElevatedButton (green background)
+│     │        │     │        ├─ Text: "Start Rental" (white)
+│     │        │     │        └─ onPressed:
+│     │        │     │           ├─ reset! loading → true
+│     │        │     │           ├─ setTimeout (1000ms):
+│     │        │     │           │  ├─ state/set-current-rental
+│     │        │     │           │  │  └─ {:id (random-uuid)
+│     │        │     │           │  │     :start-time (js/Date.now)
+│     │        │     │           │  │     :duration 0}
+│     │        │     │           │  └─ reset! loading → false
+│     │        │     │           ⚠️ TODO: api/start-rental
+│     │        │     │
+│     │        │     └─ Loading Indicator (conditional)
+│     │        │        └─ CircularProgressIndicator (если @loading)
+│     │        │
+│     │        └─ 📋 Instructions Card
+│     │           └─ Card
+│     │              └─ Padding (16)
+│     │                 └─ Column (spacing: 8)
+│     │                    ├─ Text: "Instructions" (16px, bold)
+│     │                    ├─ Text: "• Scan QR code to unlock the bike"
+│     │                    ├─ Text: "• Use the app to lock when finished"
+│     │                    └─ Text: "• Return bike to designated area"
+│     │
+│     └─ ❌ Если bike не существует:
+│        └─ Center
+│           └─ Column (center, spacing: 16)
+│              ├─ Bike icon (64px, grey-400)
+│              ├─ Text: "No bike selected" (18px, grey)
+│              └─ ElevatedButton
+│                 ├─ Text: "Scan QR Code"
+│                 └─ onPressed: js/console.log("Scan QR")
+│                    ⚠️ TODO: Навигация на /qr-scanner
+```
+
+### Используемое состояние:
+- `@state/current-bike` - чтение данных о байке
+- `@state/current-rental` - чтение/запись данных аренды
+- `state/set-current-rental` - установка аренды
+- `state/clear-rental` - очистка аренды и байка
+
+### API вызовы:
+- ❌ TODO: `api/start-rental` - при нажатии "Start Rental"
+- ❌ TODO: `api/end-rental` - при нажатии "End Rental"
+- ⚠️ Сейчас: симуляция через локальное состояние
+
+### Навигация:
+- ⚠️ TODO: Назад - при нажатии на Back button
+- ⚠️ TODO: `/qr-scanner` - если байк не выбран
+
+---
+
+## 📲 КОМПОНЕНТ: install-prompt (bikes.components.pwa-install)
+
+### Структура компонентов:
+
+```
+install-prompt
+│
+└─ Card
+   └─ Margin (16)
+      └─ Padding (20)
+         └─ Column (spacing: 16, cross-axis: start)
+            │
+            ├─ 📋 Title Row
+            │  └─ Row (spacing: 12, start)
+            │     ├─ Download icon (24px, blue)
+            │     └─ Expanded
+            │        └─ Text: "Install App" (18px, bold)
+            │
+            ├─ 📝 Description
+            │  └─ Text: "Install Bikes app for better experience and Bluetooth support"
+            │     (14px, grey-700)
+            │
+            └─ 🔘 Buttons Row
+               └─ Row (spacing: 12, end)
+                  ├─ TextButton
+                  │  ├─ Text: "Later"
+                  │  └─ onPressed: js/console.log("Dismiss")
+                  │     ⚠️ TODO: Закрыть промпт
+                  │
+                  └─ ElevatedButton
+                     ├─ Text: "Install"
+                     └─ onPressed: js/console.log("Install PWA")
+                        ⚠️ TODO: Вызов PWA install API
+```
+
+### Используемое состояние:
+- Нет (чистый компонент)
+
+### API вызовы:
+- ❌ TODO: PWA Install API (браузерный API)
+
+---
+
+## 🌐 СЕРВИС: API (bikes.services.api)
+
+### Функции и их использование:
+
+```
+api/
+│
+├─ 🔧 request (базовый HTTP запрос)
+│  └─ Параметры: method, endpoint, data
+│  └─ Использование: внутренняя функция
+│  └─ Статус: ⚠️ TODO - реализация через http пакет
+│
+├─ 📍 get-bike-by-qr
+│  └─ Параметры: qr-code (string)
+│  └─ Endpoint: GET /bikes/{qr-code}
+│  └─ Использование: 
+│     ❌ НЕ ИСПОЛЬЗУЕТСЯ (TODO в qr-scanner-screen)
+│  └─ Статус: ⚠️ TODO
+│
+├─ ▶️ start-rental
+│  └─ Параметры: bike-id, user-id
+│  └─ Endpoint: POST /rentals/start
+│  └─ Body: {:bike-id bike-id :user-id user-id}
+│  └─ Использование:
+│     ❌ НЕ ИСПОЛЬЗУЕТСЯ (TODO в bike-rental-screen)
+│  └─ Статус: ⚠️ TODO
+│
+├─ ⏹️ end-rental
+│  └─ Параметры: rental-id
+│  └─ Endpoint: POST /rentals/{rental-id}/end
+│  └─ Использование:
+│     ❌ НЕ ИСПОЛЬЗУЕТСЯ (TODO в bike-rental-screen)
+│  └─ Статус: ⚠️ TODO
+│
+├─ 📊 get-current-rental
+│  └─ Параметры: user-id
+│  └─ Endpoint: GET /rentals/current?user-id={user-id}
+│  └─ Использование:
+│     ❌ НЕ ИСПОЛЬЗУЕТСЯ (TODO в home-screen)
+│  └─ Статус: ⚠️ TODO
+│
+└─ 🔐 authenticate
+   └─ Параметры: phone-number
+   └─ Endpoint: POST /auth/login
+   └─ Body: {:phone phone-number}
+   └─ Использование:
+      ❌ НЕ ИСПОЛЬЗУЕТСЯ (TODO - нужен экран логина)
+   └─ Статус: ⚠️ TODO
+```
+
+### Base URL:
+- `https://api.bikes.example.com` (⚠️ TODO: заменить на реальный)
+
+---
+
+## 📡 СЕРВИС: Bluetooth (bikes.services.bluetooth)
+
+### Функции и их использование:
+
+```
+bluetooth/
+│
+├─ 🔍 scan-for-devices
+│  └─ Параметры: нет
+│  └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ
+│  └─ Статус: ⚠️ TODO - реализация через flutter_blue_plus
+│
+├─ 🔌 connect-to-device
+│  └─ Параметры: device-id
+│  └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ
+│  └─ Статус: ⚠️ TODO
+│
+├─ 🔓 unlock-bike
+│  └─ Параметры: device-id
+│  └─ Команда: 0x02 (unlock-command)
+│  └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ
+│  └─ Статус: ⚠️ TODO
+│
+├─ 🔒 lock-bike
+│  └─ Параметры: device-id
+│  └─ Команда: 0x01 (lock-command)
+│  └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ
+│  └─ Статус: ⚠️ TODO
+│
+├─ 📊 get-bike-status
+│  └─ Параметры: device-id
+│  └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ
+│  └─ Статус: ⚠️ TODO
+│
+├─ 🔋 get-battery-level
+│  └─ Параметры: device-id
+│  └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ
+│  └─ Статус: ⚠️ TODO
+│
+└─ 📡 subscribe-to-status
+   └─ Параметры: device-id, callback
+   └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ
+   └─ Статус: ⚠️ TODO
+```
+
+### BLE Константы:
+- Service UUID: `0000ff00-0000-1000-8000-00805f9b34fb`
+- Lock Control UUID: `0000ff01-0000-1000-8000-00805f9b34fb` (WRITE)
+- Lock Status UUID: `0000ff02-0000-1000-8000-00805f9b34fb` (READ/NOTIFY)
+- Battery Level UUID: `0000ff03-0000-1000-8000-00805f9b34fb` (READ/NOTIFY)
+
+### Команды:
+- Lock: `0x01`
+- Unlock: `0x02`
+- Status: `0x03`
+
+### Статусы:
+- Locked: `0x00`
+- Unlocked: `0x01`
+- Error: `0x02`
+
+---
+
+## 💾 СОСТОЯНИЕ: app-state (bikes.state.app-state)
+
+### Атомы:
+
+```
+app-state/
+│
+├─ current-rental (atom nil)
+│  └─ Структура: {:id uuid
+│                 :start-time timestamp
+│                 :duration minutes}
+│  └─ Использование:
+│     ├─ Чтение: home-screen, bike-rental-screen
+│     ├─ Запись: bike-rental-screen (set-current-rental)
+│     └─ Очистка: bike-rental-screen (clear-rental)
+│
+├─ current-bike (atom nil)
+│  └─ Структура: {:id string
+│                 :location string
+│                 :battery number}
+│  └─ Использование:
+│     ├─ Чтение: bike-rental-screen
+│     ├─ Запись: qr-scanner-screen (set-current-bike)
+│     └─ Очистка: bike-rental-screen (clear-rental)
+│
+├─ user (atom nil)
+│  └─ Структура: TODO
+│  └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ
+│
+└─ pwa-installed (atom false)
+   └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ
+```
+
+### Функции:
+
+```
+app-state/
+│
+├─ set-current-bike [bike-data]
+│  └─ Вызывается: qr-scanner-screen
+│
+├─ set-current-rental [rental-data]
+│  └─ Вызывается: bike-rental-screen
+│
+├─ clear-rental []
+│  └─ Вызывается: bike-rental-screen
+│  └─ Очищает: current-rental и current-bike
+│
+├─ set-user [user-data]
+│  └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ
+│
+└─ set-pwa-installed [installed?]
+   └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ
+```
+
+---
+
+## 🔧 УТИЛИТЫ: helpers (bikes.utils.helpers)
+
+### Функции:
+
+```
+helpers/
+│
+├─ format-duration [minutes]
+│  └─ Форматирует минуты в "X min" или "X h Y min"
+│  └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ (TODO в bike-rental-screen)
+│
+├─ format-time [timestamp]
+│  └─ Форматирует timestamp в читаемый формат
+│  └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ (TODO в bike-rental-screen)
+│
+├─ generate-id []
+│  └─ Генерирует случайный UUID
+│  └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ
+│
+└─ validate-qr-code [code]
+   └─ Проверяет формат QR кода (BIKE-{number})
+   └─ Использование: ❌ НЕ ИСПОЛЬЗУЕТСЯ (TODO в qr-scanner-screen)
+```
+
+---
+
+## 🔄 ПОТОКИ ДАННЫХ
+
+### Поток 1: Сканирование QR и начало аренды
+
+```
+1. Пользователь открывает qr-scanner-screen
+   │
+2. Нажимает "Simulate QR Scan" (или сканирует реальный QR)
+   │
+3. qr-scanner-screen:
+   ├─ Генерирует fake-qr-code
+   ├─ reset! scanned-code → fake-qr-code
+   └─ state/set-current-bike
+      └─ Устанавливает current-bike в app-state
+   │
+4. ⚠️ TODO: api/get-bike-by-qr(fake-qr-code)
+   │  └─ Получение данных о байке с сервера
+   │
+5. Навигация на /rental
+   │
+6. bike-rental-screen читает @state/current-bike
+   │
+7. Пользователь нажимает "Start Rental"
+   │
+8. bike-rental-screen:
+   ├─ reset! loading → true
+   ├─ state/set-current-rental
+   │  └─ Устанавливает rental в app-state
+   └─ ⚠️ TODO: api/start-rental(bike-id, user-id)
+      └─ Отправка запроса на сервер
+```
+
+### Поток 2: Завершение аренды
+
+```
+1. Пользователь на bike-rental-screen с активной арендой
+   │
+2. Нажимает "End Rental"
+   │
+3. bike-rental-screen:
+   ├─ reset! loading → true
+   ├─ ⚠️ TODO: api/end-rental(rental-id)
+   │  └─ Отправка запроса на сервер
+   ├─ state/clear-rental
+   │  └─ Очищает current-rental и current-bike
+   └─ reset! loading → false
+   │
+4. Экран показывает "No bike selected"
+```
+
+### Поток 3: Проверка активной аренды
+
+```
+1. Пользователь открывает home-screen
+   │
+2. home-screen читает @state/current-rental
+   │
+3. ⚠️ TODO: api/get-current-rental(user-id)
+   │  └─ Проверка активной аренды на сервере
+   │
+4. Если есть активная аренда:
+   └─ Показывается карточка "Current Rental"
+```
+
+---
+
+## 📋 ЧЕКЛИСТ ИНТЕГРАЦИЙ
+
+### API Интеграции:
+- [ ] `api/get-bike-by-qr` в qr-scanner-screen после сканирования
+- [ ] `api/start-rental` в bike-rental-screen при старте аренды
+- [ ] `api/end-rental` в bike-rental-screen при завершении
+- [ ] `api/get-current-rental` в home-screen при загрузке
+- [ ] `api/authenticate` - нужен экран логина
+
+### Навигация:
+- [ ] Навигация на `/qr-scanner` из home-screen
+- [ ] Навигация на `/rental` из home-screen (если есть аренда)
+- [ ] Навигация на `/rental` из qr-scanner-screen после сканирования
+- [ ] Навигация назад из qr-scanner-screen
+- [ ] Навигация назад из bike-rental-screen
+- [ ] Навигация на `/qr-scanner` из bike-rental-screen (если нет байка)
+
+### Bluetooth Интеграции:
+- [ ] `bluetooth/scan-for-devices` - поиск блокировщиков
+- [ ] `bluetooth/connect-to-device` - подключение к блокировщику
+- [ ] `bluetooth/unlock-bike` - разблокировка байка
+- [ ] `bluetooth/lock-bike` - блокировка байка
+- [ ] `bluetooth/get-bike-status` - получение статуса
+- [ ] `bluetooth/get-battery-level` - получение уровня батареи
+- [ ] `bluetooth/subscribe-to-status` - подписка на обновления
+
+### Утилиты:
+- [ ] `helpers/format-duration` в bike-rental-screen
+- [ ] `helpers/format-time` в bike-rental-screen
+- [ ] `helpers/validate-qr-code` в qr-scanner-screen
+
+### PWA:
+- [ ] PWA Install API в install-prompt
+- [ ] Проверка установки PWA при загрузке
+- [ ] Обновление `pwa-installed` в app-state
+
+---
+
+## 📊 СТАТИСТИКА ПРОЕКТА
+
+- **Всего файлов ClojureDart**: 11
+- **Экранов**: 3 (home, qr-scanner, bike-rental)
+- **Компонентов**: 1 (pwa-install)
+- **Сервисов**: 2 (api, bluetooth)
+- **Утилит**: 1 (helpers)
+- **Состояние**: 4 атома (current-rental, current-bike, user, pwa-installed)
+
+### Статус реализации:
+- ✅ Структура: 100%
+- ⚠️ API интеграции: 0% (все TODO)
+- ⚠️ Навигация: 0% (все TODO)
+- ⚠️ Bluetooth: 0% (все TODO)
+- ⚠️ PWA Install: 0% (TODO)
+
+---
+
+*Последнее обновление: при создании документа*
+

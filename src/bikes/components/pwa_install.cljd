@@ -1,0 +1,37 @@
+(ns bikes.components.pwa-install
+  (:require [flutter-cljd.widgets :as ui]
+            [flutter-cljd.material :as material]))
+
+(defn install-prompt []
+  (ui/card
+   {:margin (ui/edge-insets-all 16)
+    :child (ui/padding
+            {:padding (ui/edge-insets-all 20)}
+            (ui/column
+             {:spacing 16
+              :cross-axis-alignment ui/cross-axis-alignment-start}
+             
+             ;; Title
+             (ui/row
+              {:spacing 12
+               :main-axis-alignment ui/main-axis-alignment-start}
+              (ui/icon material/icons/download {:size 24 :color material/blue})
+              (ui/expanded
+               (ui/text "Install App"
+                       {:style (ui/text-style {:size 18 :weight ui/font-weight-bold})})))
+             
+             ;; Description
+             (ui/text "Install Bikes app for better experience and Bluetooth support"
+                     {:style (ui/text-style {:size 14 :color material/grey-700})})
+             
+             ;; Buttons
+             (ui/row
+              {:spacing 12
+               :main-axis-alignment ui/main-axis-alignment-end}
+              (material/text-button
+               {:on-pressed #(js/console.log "Dismiss")
+                :child (ui/text "Later")})
+              (material/elevated-button
+               {:on-pressed #(js/console.log "Install PWA")
+                :child (ui/text "Install")})))))))
+

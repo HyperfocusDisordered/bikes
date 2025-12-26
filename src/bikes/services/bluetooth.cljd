@@ -1,0 +1,64 @@
+(ns bikes.services.bluetooth
+  "Bluetooth сервис для взаимодействия с блокировщиками байков"
+  (:require [flutter-cljd.core :refer [defn*]]))
+
+;; BLE Service UUID для блокировщика
+(def lock-service-uuid "0000ff00-0000-1000-8000-00805f9b34fb")
+
+;; BLE Characteristics UUID
+(def lock-control-uuid "0000ff01-0000-1000-8000-00805f9b34fb") ; WRITE
+(def lock-status-uuid "0000ff02-0000-1000-8000-00805f9b34fb")   ; READ/NOTIFY
+(def battery-level-uuid "0000ff03-0000-1000-8000-00805f9b34fb") ; READ/NOTIFY
+
+;; Команды блокировки
+(def lock-command 0x01)
+(def unlock-command 0x02)
+(def status-command 0x03)
+
+;; Статусы
+(def status-locked 0x00)
+(def status-unlocked 0x01)
+(def status-error 0x02)
+
+(defn* scan-for-devices
+  "Сканирует BLE устройства в радиусе"
+  []
+  ;; TODO: реализация через flutter_blue_plus
+  (js/console.log "Scanning for BLE devices..."))
+
+(defn* connect-to-device
+  "Подключается к устройству блокировки по device-id"
+  [device-id]
+  ;; TODO: реализация подключения
+  (js/console.log "Connecting to device:" device-id))
+
+(defn* unlock-bike
+  "Разблокирует байк через Bluetooth"
+  [device-id]
+  ;; TODO: отправка команды разблокировки
+  (js/console.log "Unlocking bike:" device-id))
+
+(defn* lock-bike
+  "Блокирует байк через Bluetooth"
+  [device-id]
+  ;; TODO: отправка команды блокировки
+  (js/console.log "Locking bike:" device-id))
+
+(defn* get-bike-status
+  "Получает текущий статус блокировки"
+  [device-id]
+  ;; TODO: чтение статуса
+  (js/console.log "Getting status for:" device-id))
+
+(defn* get-battery-level
+  "Получает уровень заряда батареи блокировщика"
+  [device-id]
+  ;; TODO: чтение уровня батареи
+  (js/console.log "Getting battery level for:" device-id))
+
+(defn* subscribe-to-status
+  "Подписывается на обновления статуса блокировки"
+  [device-id callback]
+  ;; TODO: подписка на notifications
+  (js/console.log "Subscribing to status updates for:" device-id))
+

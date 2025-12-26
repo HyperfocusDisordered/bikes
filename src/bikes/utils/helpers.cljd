@@ -1,0 +1,33 @@
+(ns bikes.utils.helpers
+  "Вспомогательные функции")
+
+(defn format-duration
+  "Форматирует длительность в минутах в читаемый формат"
+  [minutes]
+  (if (< minutes 60)
+    (str minutes " min")
+    (let [hours (int (/ minutes 60))
+          mins (mod minutes 60)]
+      (if (zero? mins)
+        (str hours " h")
+        (str hours " h " mins " min")))))
+
+(defn format-time
+  "Форматирует timestamp в читаемый формат"
+  [timestamp]
+  (let [date (js/Date. timestamp)]
+    (.toLocaleString date)))
+
+(defn generate-id
+  "Генерирует случайный ID"
+  []
+  (str (random-uuid)))
+
+(defn validate-qr-code
+  "Проверяет валидность QR кода"
+  [code]
+  (and code
+       (string? code)
+       (> (count code) 0)
+       (re-matches #"BIKE-\d+" code)))
+

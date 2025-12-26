@@ -1,0 +1,74 @@
+(ns bikes.screens.home
+  "Главный экран"
+  (:require [flutter-cljd.widgets :as ui]
+            [flutter-cljd.material :as material]
+            [bikes.state.app-state :as state]))
+
+(defn home-screen []
+  (ui/scaffold
+   {:app-bar (material/app-bar
+              {:title (ui/text "Bikes")
+               :backgroundColor material/blue})
+    :body (ui/padding
+           {:padding (ui/edge-insets-all 16)}
+           (ui/column
+            {:spacing 24}
+            
+            ;; Welcome Card
+            (material/card
+             {:elevation 2
+              :child (ui/padding
+                     {:padding (ui/edge-insets-all 20)}
+                     (ui/column
+                      {:spacing 12}
+                      (ui/text "Welcome to Bikes!"
+                              {:style (ui/text-style {:size 24 :weight ui/font-weight-bold})})
+                      (ui/text "Scan QR code to start your ride"
+                              {:style (ui/text-style {:size 14 :color material/grey-600})}))))}
+            
+            ;; Quick Actions
+            (ui/column
+             {:spacing 12}
+             (ui/text "Quick Actions"
+                     {:style (ui/text-style {:size 18 :weight ui/font-weight-bold})})
+             
+             (material/card
+              {:child (material/list-tile
+                      {:leading (ui/icon material/icons/qr-code-scanner {:size 32 :color material/blue})
+                       :title (ui/text "Scan QR Code")
+                       :subtitle (ui/text "Start a new rental")
+                       :trailing (material/icons/chevron-right)
+                       :on-tap #(js/console.log "Navigate to QR scanner")})})
+             
+             (when @state/current-rental
+               (material/card
+                {:child (material/list-tile
+                        {:leading (ui/icon material/icons/directions-bike {:size 32 :color material/green})
+                         :title (ui/text "Current Rental")
+                         :subtitle (ui/text "View active rental")
+                         :trailing (material/icons/chevron-right)
+                         :on-tap #(js/console.log "Navigate to rental")})})))
+            
+            ;; Stats (placeholder)
+            (material/card
+             {:child (ui/padding
+                     {:padding (ui/edge-insets-all 16)}
+                     (ui/column
+                      {:spacing 12}
+                      (ui/text "Your Stats"
+                              {:style (ui/text-style {:size 18 :weight ui/font-weight-bold})})
+                      (ui/row
+                       {:main-axis-alignment ui/main-axis-alignment-space-between}
+                       (ui/column
+                        {:cross-axis-alignment ui/cross-axis-alignment-start}
+                        (ui/text "Total Rides"
+                                {:style (ui/text-style {:size 12 :color material/grey-600})})
+                        (ui/text "0"
+                                {:style (ui/text-style {:size 24 :weight ui/font-weight-bold})}))
+                       (ui/column
+                        {:cross-axis-alignment ui/cross-axis-alignment-end}
+                        (ui/text "Total Distance"
+                                {:style (ui/text-style {:size 12 :color material/grey-600})})
+                        (ui/text "0 km"
+                                {:style (ui/text-style {:size 24 :weight ui/font-weight-bold})})))))}))}))})
+

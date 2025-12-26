@@ -1,0 +1,80 @@
+(ns bikes.screens.qr-scanner
+  "Экран сканирования QR кода"
+  (:require [flutter-cljd.widgets :as ui]
+            [flutter-cljd.material :as material]
+            [bikes.components.pwa-install :as pwa-install]
+            [bikes.state.app-state :as state]))
+
+(defn qr-scanner-screen []
+  (let [scanned-code (atom nil)
+        show-install-prompt (atom false)
+        scanning (atom true)]
+    (ui/scaffold
+     {:app-bar (material/app-bar
+                {:title (ui/text "Scan QR Code")
+                 :backgroundColor material/blue
+                 :leading (material/icon-button
+                          {:icon (material/icons/arrow-back)
+                           :on-pressed #(js/console.log "Back")})})
+      :body (ui/center
+             (ui/column
+              {:main-axis-alignment ui/main-axis-alignment-center
+               :cross-axis-alignment ui/cross-axis-alignment-center
+               :spacing 24}
+              
+              ;; QR Scanner placeholder
+              (ui/container
+               {:width 300
+                :height 300
+                :decoration (ui/box-decoration
+                            {:color material/grey-200
+                             :border (ui/border-all {:width 2 :color material/blue})
+                             :border-radius (ui/border-radius-circular 12)})
+                :child (ui/center
+                       (ui/column
+                        {:main-axis-alignment ui/main-axis-alignment-center
+                         :spacing 16}
+                        (ui/icon material/icons/qr-code-scanner {:size 64 :color material/blue})
+                        (if @scanned-code
+                          (ui/column
+                           {:spacing 8
+                            :main-axis-alignment ui/main-axis-alignment-center}
+                           (ui/text "Code scanned!"
+                                  {:style (ui/text-style {:size 18 :weight ui/font-weight-bold :color material/green})})
+                           (ui/text @scanned-code
+                                  {:style (ui/text-style {:size 14 :color material/grey-600})}))
+                          (ui/text "Point camera at QR code"
+                                  {:style (ui/text-style {:size 16 :color material/grey-600})}))))})
+              
+              ;; Instructions
+              (ui/padding
+               {:padding (ui/edge-insets-symmetric {:horizontal 32 :vertical 16})}
+               (ui/text "Scan the QR code on the bike to start rental"
+                       {:text-align ui/text-align-center
+                        :style (ui/text-style {:size 14 :color material/grey-700})}))
+              
+              ;; Simulate QR scan button (для тестирования)
+              (material/elevated-button
+               {:on-pressed #(let [fake-qr-code (str "BIKE-" (rand-int 10000))]
+                              (reset! scanned-code fake-qr-code)
+                              (state/set-current-bike
+                               {:id fake-qr-code
+                                :location "Current Location"
+                                :battery (+ 50 (rand-int 50))})
+                              (js/setTimeout
+                               (fn []
+                                 (js/console.log "Navigate to rental screen"))
+                               500))
+                :child (ui/text "Simulate QR Scan (Test)")})
+              
+              ;; PWA Install Prompt
+              (when @show-install-prompt
+                (pwa-install/install-prompt))
+              
+              ;; Manual code input (fallback)
+              (ui/padding
+               {:padding (ui/edge-insets-all 16)}
+               (material/text-button
+                {:on-pressed #(reset! show-install-prompt true)
+                 :child (ui/text "Install App")}))))})))
+

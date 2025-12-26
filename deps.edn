@@ -1,0 +1,6 @@
+{:deps {org.clojure/clojure {:mvn/version "1.11.1"}
+        com.github.clojure-lsp/clojure-lsp {:mvn/version "2024.01.15-19.20.20"}
+        io.github.dankinsoid/flutter-cljd {:git/tag "v0.1.0" :git/sha "latest"}}
+ :paths ["src" "resources"]
+ :aliases {:dev {:extra-paths ["dev"]}}}
+

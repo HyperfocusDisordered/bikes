@@ -1,0 +1,8 @@
+(ns bikes.core
+  (:require [flutter-cljd.widgets :as ui]
+            [flutter-cljd.material :as material]
+            [bikes.app :as app]))
+
+(defn main []
+  (ui/run-app (app/app)))
+

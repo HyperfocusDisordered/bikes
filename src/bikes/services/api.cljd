@@ -1,0 +1,38 @@
+(ns bikes.services.api
+  "API клиент для взаимодействия с backend"
+  (:require [flutter-cljd.core :refer [defn*]]))
+
+(def api-base-url "https://api.bikes.example.com")
+
+(defn* request
+  "Базовый HTTP запрос"
+  [method endpoint data]
+  ;; TODO: реализация через http пакет
+  (js/console.log "API Request:" method endpoint data)
+  (js/Promise.resolve {:status 200 :data data}))
+
+(defn* get-bike-by-qr
+  "Получает информацию о байке по QR коду"
+  [qr-code]
+  (request "GET" (str "/bikes/" qr-code) nil))
+
+(defn* start-rental
+  "Начинает аренду байка"
+  [bike-id user-id]
+  (request "POST" "/rentals/start" {:bike-id bike-id :user-id user-id}))
+
+(defn* end-rental
+  "Завершает аренду байка"
+  [rental-id]
+  (request "POST" (str "/rentals/" rental-id "/end") nil))
+
+(defn* get-current-rental
+  "Получает текущую активную аренду"
+  [user-id]
+  (request "GET" (str "/rentals/current?user-id=" user-id) nil))
+
+(defn* authenticate
+  "Аутентификация пользователя"
+  [phone-number]
+  (request "POST" "/auth/login" {:phone phone-number}))
+

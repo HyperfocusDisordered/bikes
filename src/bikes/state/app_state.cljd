@@ -1,0 +1,24 @@
+(ns bikes.state.app-state
+  "Глобальное состояние приложения")
+
+(defonce current-rental (atom nil))
+(defonce current-bike (atom nil))
+(defonce user (atom nil))
+(defonce pwa-installed (atom false))
+
+(defn set-current-bike [bike-data]
+  (reset! current-bike bike-data))
+
+(defn set-current-rental [rental-data]
+  (reset! current-rental rental-data))
+
+(defn clear-rental []
+  (reset! current-rental nil)
+  (reset! current-bike nil))
+
+(defn set-user [user-data]
+  (reset! user user-data))
+
+(defn set-pwa-installed [installed?]
+  (reset! pwa-installed installed?))
+

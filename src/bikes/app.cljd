@@ -1,0 +1,23 @@
+(ns bikes.app
+  "Главное приложение"
+  (:require [flutter-cljd.widgets :as ui]
+            [flutter-cljd.material :as material]
+            [bikes.screens.home :as home]
+            [bikes.screens.qr-scanner :as qr-scanner]
+            [bikes.screens.bike-rental :as bike-rental]))
+
+(defn app []
+  "Точка входа приложения"
+  ;; Примечание: синтаксис может отличаться в зависимости от версии flutter-cljd
+  ;; Проверьте документацию: https://github.com/dankinsoid/flutter-cljd
+  (material/material-app
+   {:title "Bikes"
+    :theme (material/theme-data
+            {:primary-swatch material/blue
+             :use-material3 true})
+    :initial-route "/"
+    :routes {"/" (fn [_] (home/home-screen))
+             "/qr-scanner" (fn [_] (qr-scanner/qr-scanner-screen))
+             "/rental" (fn [_] (bike-rental/bike-rental-screen))}
+    :home (home/home-screen)}))
+
