@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Interactive</title>
+    <script>
+        // Тест функций загрузки
+        async function testLoadFile() {
+            const testPath = 'src/bikes/core.cljd';
+            console.log('Testing loadFile with:', testPath);
+            
+            const pathsToTry = [
+                `/${testPath}`,
+                testPath,
+                `../../${testPath}`
+            ];
+            
+            for (const tryPath of pathsToTry) {
+                try {
+                    console.log('Trying:', tryPath);
+                    const response = await fetch(tryPath);
+                    console.log('Response status:', response.status);
+                    if (response.ok) {
+                        const text = await response.text();
+                        console.log('✅ Success! Length:', text.length);
+                        console.log('First 100 chars:', text.substring(0, 100));
+                        return { success: true, path: tryPath, text: text.substring(0, 100) };
+                    }
+                } catch (e) {
+                    console.error('Error with', tryPath, ':', e);
+                }
+            }
+            return { success: false };
+        }
+        
+        window.addEventListener('load', () => {
+            console.log('Page loaded, testing...');
+            testLoadFile().then(result => {
+                document.body.innerHTML = result.success 
+                    ? `<h1>✅ Success!</h1><p>Path: ${result.path}</p><pre>${result.text}</pre>`
+                    : '<h1>❌ Failed</h1><p>Check console</p>';
+            });
+        });
+    </script>
+</head>
+<body>
+    <h1>Testing...</h1>
+</body>
+</html>
+

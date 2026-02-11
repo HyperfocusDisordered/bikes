@@ -1,0 +1,9 @@
+# Runtime files — не коммитить
+.bridge-inbox
+.bridge-inbox.bak
+.bridge-inbox.reading.*
+.bridge-outbox
+.bridge-log
+.bridge-hook-log
+.bridge-photos/
+node_modules/

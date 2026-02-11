@@ -1,0 +1,4 @@
+# Кэш и временные файлы
+*.log
+.DS_Store
+node_modules/

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Test Preview</title>
+</head>
+<body>
+  <h1>Testing Preview</h1>
+  <button onclick="testPreview()">Test Home Screen Preview</button>
+  <div id="result"></div>
+  
+  <script>
+    async function testPreview() {
+      const result = document.getElementById('result');
+      result.innerHTML = 'Testing...';
+      
+      // Тест 1: Проверка preview.html
+      try {
+        const response = await fetch('/preview?component=home-screen');
+        const html = await response.text();
+        if (html.includes('home-screen') && html.includes('showFallback')) {
+          result.innerHTML += '<br>✓ preview.html loaded correctly';
+        } else {
+          result.innerHTML += '<br>✗ preview.html missing functions';
+        }
+      } catch (e) {
+        result.innerHTML += '<br>✗ Error loading preview.html: ' + e.message;
+      }
+      
+      // Тест 2: Проверка Flutter app
+      try {
+        const flutterResponse = await fetch('/flutter-app/index.html', { method: 'HEAD' });
+        if (flutterResponse.ok) {
+          result.innerHTML += '<br>✓ Flutter app found';
+        } else {
+          result.innerHTML += '<br>⚠ Flutter app not found (will use fallback)';
+        }
+      } catch (e) {
+        result.innerHTML += '<br>⚠ Flutter app not found (will use fallback)';
+      }
+      
+      // Тест 3: Открываем preview в iframe
+      const iframe = document.createElement('iframe');
+      iframe.src = '/preview?component=home-screen';
+      iframe.style.width = '800px';
+      iframe.style.height = '600px';
+      iframe.style.border = '2px solid #00ffff';
+      result.appendChild(iframe);
+      
+      iframe.onload = () => {
+        result.innerHTML += '<br>✓ Preview iframe loaded';
+      };
+      
+      iframe.onerror = () => {
+        result.innerHTML += '<br>✗ Preview iframe failed to load';
+      };
+    }
+  </script>
+</body>
+</html>
+

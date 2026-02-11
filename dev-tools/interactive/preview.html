@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href="/">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flutter Component Preview</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: #000;
+    }
+    #preview-container {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .loading {
+      color: #00ffff;
+      font-family: monospace;
+      text-shadow: 0 0 2px #00cfff, 0 0 3px #00cfff80, 0 0 6px #00cfff;
+    }
+    iframe {
+      border: none;
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="preview-container">
+    <div class="loading">Loading Flutter component...</div>
+  </div>
+  <script>
+    // Получаем параметры из URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const componentName = urlParams.get('component');
+    const mockStateParam = urlParams.get('mockState');
+    
+    // Парсим mock state если есть
+    let mockState = {};
+    if (mockStateParam) {
+      try {
+        mockState = JSON.parse(decodeURIComponent(mockStateParam));
+      } catch (e) {
+        console.error('Error parsing mockState:', e);
+      }
+    }
+    
+    // Показываем информацию о компоненте
+    if (componentName) {
+      const loadingEl = document.querySelector('.loading');
+      if (loadingEl) {
+        loadingEl.textContent = `Loading: ${componentName}`;
+      }
+    }
+    
+    console.log('Preview page loaded, component:', componentName);
+    
+    // Всегда пытаемся загрузить Flutter (и для компонентов, и для экранов)
+    loadFlutterApp();
+    
+    // Пробуем загрузить Flutter Web приложение
+    function loadFlutterApp() {
+      console.log('loadFlutterApp called for component:', componentName);
+      const container = document.getElementById('preview-container');
+      const flutterAppPath = '/flutter-app/index.html';
+      
+      // Сначала проверяем доступность Flutter приложения
+      fetch(flutterAppPath, { method: 'HEAD' })
+        .then(response => {
+          if (response.ok) {
+            console.log('Flutter app found, loading in iframe...');
+            // Flutter app найден, загружаем через iframe
+            const url = flutterAppPath + (componentName ? `?component=${encodeURIComponent(componentName)}` : '');
+            const iframe = document.createElement('iframe');
+            iframe.src = url;
+            iframe.style.width = '100%';
+            iframe.style.height = '100%';
+            iframe.style.border = 'none';
+            iframe.style.background = '#000';
+            
+            let loaded = false;
+            
+            iframe.onload = () => {
+              loaded = true;
+              console.log('Flutter app iframe loaded successfully');
+            };
+            
+            iframe.onerror = () => {
+              console.error('Failed to load Flutter app in iframe');
+              if (!loaded) {
+                const loadingEl = container.querySelector('.loading');
+                if (loadingEl) {
+                  loadingEl.textContent = 'Failed to load Flutter component';
+                  loadingEl.style.color = '#ff0000';
+                }
+              }
+            };
+            
+            container.innerHTML = '';
+            container.appendChild(iframe);
+          } else {
+            throw new Error('Flutter app not found (404)');
+          }
+        })
+        .catch(error => {
+          console.error('Flutter app not found:', error);
+          const container = document.getElementById('preview-container');
+          if (container) {
+            const loadingEl = container.querySelector('.loading');
+            if (loadingEl) {
+              loadingEl.textContent = 'Flutter app not found. Build it first: flutter build web --release --base-href "/flutter-app/"';
+              loadingEl.style.color = '#ff0000';
+            }
+          }
+        });
+    }
+
+    // Live Reload через Server-Sent Events
+    (function setupLiveReload() {
+        const eventSource = new EventSource('/events');
+
+        eventSource.onopen = () => {
+            console.log('🔌 Live reload connected (preview)');
+        };
+
+        eventSource.onmessage = (event) => {
+            if (event.data === 'reload') {
+                console.log('🔄 Reloading preview...');
+
+                // Создаем оверлей для анимации обновления
+                const overlay = document.createElement('div');
+                overlay.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100vw;
+                    height: 100vh;
+                    background: linear-gradient(135deg, rgba(0, 207, 255, 0.95) 0%, rgba(0, 100, 255, 0.95) 100%);
+                    z-index: 999999;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-direction: column;
+                    gap: 20px;
+                    opacity: 0;
+                    transition: opacity 0.3s ease;
+                `;
+
+                const icon = document.createElement('div');
+                icon.style.cssText = `
+                    font-size: 64px;
+                    animation: spin 1s linear infinite;
+                `;
+                icon.textContent = '🔄';
+
+                const text = document.createElement('div');
+                text.style.cssText = `
+                    font-family: monospace;
+                    font-size: 24px;
+                    color: white;
+                    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+                `;
+                text.textContent = 'Updating Preview...';
+
+                overlay.appendChild(icon);
+                overlay.appendChild(text);
+                document.body.appendChild(overlay);
+
+                // Плавно показываем оверлей
+                requestAnimationFrame(() => {
+                    overlay.style.opacity = '1';
+                });
+
+                // Перезагружаем страницу через небольшую задержку
+                setTimeout(() => {
+                    window.location.reload();
+                }, 500);
+            }
+        };
+
+        eventSource.onerror = (error) => {
+            console.error('EventSource error:', error);
+            // Переподключаемся через секунду
+            eventSource.close();
+            setTimeout(setupLiveReload, 1000);
+        };
+    })();
+  </script>
+</body>
+</html>

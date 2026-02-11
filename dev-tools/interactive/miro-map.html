@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bikes - Interactive Logic Map</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000000;
+            color: #ffffff;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            background: radial-gradient(ellipse at center, #1a1a1a 0%, #000000 100%);
+        }
+
+        /* Canvas для интерактивной карты */
+        .map-canvas {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            cursor: grab;
+        }
+
+        .map-canvas:active {
+            cursor: grabbing;
+        }
+
+        .map-svg {
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(78, 201, 176, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(220, 220, 170, 0.05) 0%, transparent 50%),
+                #000000;
+        }
+
+        /* Ноды */
+        .node-group {
+            cursor: move;
+        }
+
+        .node-circle {
+            fill: rgba(78, 201, 176, 0.2);
+            stroke: #4ec9b0;
+            stroke-width: 2;
+            transition: all 0.2s;
+            filter: drop-shadow(0 0 8px rgba(78, 201, 176, 0.5));
+        }
+
+        .node-group:hover .node-circle {
+            fill: rgba(78, 201, 176, 0.4);
+            stroke-width: 3;
+            filter: drop-shadow(0 0 15px rgba(78, 201, 176, 0.8));
+            transform: scale(1.1);
+        }
+
+        .node-group.screen .node-circle {
+            fill: rgba(78, 201, 176, 0.2);
+            stroke: #4ec9b0;
+        }
+
+        .node-group.component .node-circle {
+            fill: rgba(220, 220, 170, 0.2);
+            stroke: #dcdcaa;
+        }
+
+        .node-group.service .node-circle {
+            fill: rgba(206, 145, 120, 0.2);
+            stroke: #ce9178;
+        }
+
+        .node-group.state .node-circle {
+            fill: rgba(197, 134, 192, 0.2);
+            stroke: #c586c0;
+        }
+
+        .node-group.util .node-circle {
+            fill: rgba(156, 220, 254, 0.2);
+            stroke: #9cdcfe;
+        }
+
+        .node-icon {
+            font-size: 24px;
+            text-anchor: middle;
+            dominant-baseline: central;
+            pointer-events: none;
+        }
+
+        .node-label {
+            fill: #ffffff;
+            font-size: 12px;
+            font-weight: 600;
+            text-anchor: middle;
+            dominant-baseline: hanging;
+            pointer-events: none;
+            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.8));
+        }
+
+        /* Соединительные линии */
+        .connection-line {
+            stroke: rgba(78, 201, 176, 0.3);
+            stroke-width: 1.5;
+            fill: none;
+            marker-end: url(#arrowhead);
+        }
+
+        .connection-line:hover {
+            stroke: rgba(78, 201, 176, 0.6);
+            stroke-width: 2;
+        }
+
+        /* Детальное превью при наведении */
+        .preview-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 400px;
+            max-height: 80vh;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #4ec9b0;
+            border-radius: 12px;
+            padding: 20px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .preview-panel.visible {
+            display: block;
+        }
+
+        .preview-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(78, 201, 176, 0.3);
+        }
+
+        .preview-icon {
+            font-size: 32px;
+        }
+
+        .preview-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #4ec9b0;
+        }
+
+        .preview-path {
+            font-size: 11px;
+            color: #858585;
+            font-family: monospace;
+            margin-top: 5px;
+        }
+
+        .preview-functions {
+            margin-top: 15px;
+        }
+
+        .preview-function {
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 3px solid #4ec9b0;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+        }
+
+        .preview-function-name {
+            font-size: 14px;
+            color: #dcdcaa;
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .preview-function-desc {
+            font-size: 11px;
+            color: #858585;
+        }
+
+        .preview-calls {
+            margin-top: 8px;
+            font-size: 10px;
+            color: #6a9955;
+        }
+
+        .preview-call {
+            margin: 2px 0;
+            font-family: monospace;
+        }
+
+        /* Панель управления */
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 100;
+            display: flex;
+            gap: 10px;
+        }
+
+        .control-btn {
+            padding: 10px 15px;
+            background: rgba(78, 201, 176, 0.2);
+            border: 1px solid #4ec9b0;
+            border-radius: 6px;
+            color: #4ec9b0;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .control-btn:hover {
+            background: rgba(78, 201, 176, 0.3);
+            transform: scale(1.05);
+        }
+
+        /* Поиск */
+        .search-box {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 300px;
+            padding: 12px 16px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(78, 201, 176, 0.3);
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 14px;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #4ec9b0;
+            box-shadow: 0 0 15px rgba(78, 201, 176, 0.3);
+        }
+
+        /* Стрелки для соединений */
+        .arrowhead {
+            fill: rgba(78, 201, 176, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="map-canvas" id="mapCanvas">
+            <svg class="map-svg" id="mapSvg">
+                <defs>
+                    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                        <polygon points="0 0, 10 3, 0 6" class="arrowhead" />
+                    </marker>
+                </defs>
+                <g id="connections"></g>
+                <g id="nodes"></g>
+            </svg>
+        </div>
+    </div>
+
+    <input type="text" class="search-box" placeholder="🔍 Поиск..." id="searchBox">
+
+    <div class="controls">
+        <button class="control-btn" onclick="resetView()">🔄 Сброс</button>
+        <button class="control-btn" onclick="zoomIn()">➕ Увеличить</button>
+        <button class="control-btn" onclick="zoomOut()">➖ Уменьшить</button>
+        <button class="control-btn" onclick="fitToScreen()">📐 По размеру</button>
+    </div>
+
+    <div class="preview-panel" id="previewPanel">
+        <div class="preview-header">
+            <div class="preview-icon" id="previewIcon">📱</div>
+            <div>
+                <div class="preview-title" id="previewTitle">Node Name</div>
+                <div class="preview-path" id="previewPath">path/to/file.cljd</div>
+            </div>
+        </div>
+        <div class="preview-functions" id="previewFunctions"></div>
+    </div>
+
+    <script>
+        // Данные карты - полностью раскрытое дерево
+        const logicMap = {
+            entry: {
+                id: 'entry',
+                type: 'entry',
+                name: 'main',
+                icon: '🚀',
+                path: 'src/bikes/core.cljd',
+                x: 100,
+                y: 100,
+                connections: ['app'],
+                functions: [
+                    { name: 'main', description: 'Точка входа приложения', calls: ['app/app'] }
+                ]
+            },
+            app: {
+                id: 'app',
+                type: 'app',
+                name: 'App',
+                icon: '📱',
+                path: 'src/bikes/app.cljd',
+                x: 300,
+                y: 100,
+                connections: ['home', 'qrScanner', 'bikeRental'],
+                functions: [
+                    { name: 'app', description: 'Главное приложение', calls: ['home-screen', 'qr-scanner-screen', 'bike-rental-screen'] }
+                ]
+            },
+            home: {
+                id: 'home',
+                type: 'screen',
+                name: 'Home Screen',
+                icon: '🏠',
+                path: 'src/bikes/screens/home.cljd',
+                x: 100,
+                y: 300,
+                connections: ['appState'],
+                functions: [
+                    { name: 'home-screen', description: 'Главный экран', reads: ['current-rental'] }
+                ]
+            },
+            qrScanner: {
+                id: 'qrScanner',
+                type: 'screen',
+                name: 'QR Scanner',
+                icon: '📷',
+                path: 'src/bikes/screens/qr_scanner.cljd',
+                x: 300,
+                y: 300,
+                connections: ['appState', 'pwaInstall'],
+                functions: [
+                    { name: 'qr-scanner-screen', description: 'Сканирование QR', writes: ['current-bike'], calls: ['set-current-bike', 'install-prompt'] }
+                ]
+            },
+            bikeRental: {
+                id: 'bikeRental',
+                type: 'screen',
+                name: 'Bike Rental',
+                icon: '🚴',
+                path: 'src/bikes/screens/bike_rental.cljd',
+                x: 500,
+                y: 300,
+                connections: ['appState'],
+                functions: [
+                    { name: 'bike-rental-screen', description: 'Управление арендой', reads: ['current-bike', 'current-rental'], writes: ['current-rental'] }
+                ]
+            },
+            pwaInstall: {
+                id: 'pwaInstall',
+                type: 'component',
+                name: 'PWA Install',
+                icon: '📲',
+                path: 'src/bikes/components/pwa_install.cljd',
+                x: 300,
+                y: 500,
+                connections: [],
+                functions: [
+                    { name: 'install-prompt', description: 'Промпт установки PWA' }
+                ]
+            },
+            api: {
+                id: 'api',
+                type: 'service',
+                name: 'API Client',
+                icon: '🌐',
+                path: 'src/bikes/services/api.cljd',
+                x: 700,
+                y: 100,
+                connections: [],
+                functions: [
+                    { name: 'request', description: 'Базовый HTTP запрос' },
+                    { name: 'get-bike-by-qr', description: 'Получить байк по QR', calls: ['request'] },
+                    { name: 'start-rental', description: 'Начать аренду', calls: ['request'] },
+                    { name: 'end-rental', description: 'Завершить аренду', calls: ['request'] },
+                    { name: 'get-current-rental', description: 'Получить аренду', calls: ['request'] },
+                    { name: 'authenticate', description: 'Аутентификация', calls: ['request'] }
+                ]
+            },
+            bluetooth: {
+                id: 'bluetooth',
+                type: 'service',
+                name: 'Bluetooth',
+                icon: '📡',
+                path: 'src/bikes/services/bluetooth.cljd',
+                x: 900,
+                y: 100,
+                connections: [],
+                functions: [
+                    { name: 'scan-for-devices', description: 'Сканировать устройства' },
+                    { name: 'connect-to-device', description: 'Подключиться' },
+                    { name: 'unlock-bike', description: 'Разблокировать' },
+                    { name: 'lock-bike', description: 'Заблокировать' },
+                    { name: 'get-bike-status', description: 'Статус блокировки' },
+                    { name: 'get-battery-level', description: 'Уровень батареи' },
+                    { name: 'subscribe-to-status', description: 'Подписка на статус' }
+                ]
+            },
+            appState: {
+                id: 'appState',
+                type: 'state',
+                name: 'App State',
+                icon: '💾',
+                path: 'src/bikes/state/app_state.cljd',
+                x: 300,
+                y: 700,
+                connections: [],
+                atoms: [
+                    { name: 'current-rental', readBy: ['home', 'bikeRental'], writtenBy: ['bikeRental'] },
+                    { name: 'current-bike', readBy: ['bikeRental'], writtenBy: ['qrScanner'] },
+                    { name: 'user', readBy: [], writtenBy: [] },
+                    { name: 'pwa-installed', readBy: [], writtenBy: [] }
+                ],
+                functions: [
+                    { name: 'set-current-bike', writes: ['current-bike'], calledBy: ['qrScanner'] },
+                    { name: 'set-current-rental', writes: ['current-rental'], calledBy: ['bikeRental'] },
+                    { name: 'clear-rental', writes: ['current-rental', 'current-bike'], calledBy: ['bikeRental'] }
+                ]
+            },
+            helpers: {
+                id: 'helpers',
+                type: 'util',
+                name: 'Helpers',
+                icon: '🔧',
+                path: 'src/bikes/utils/helpers.cljd',
+                x: 700,
+                y: 500,
+                connections: [],
+                functions: [
+                    { name: 'format-duration', description: 'Форматировать длительность', usedBy: ['bikeRental'] },
+                    { name: 'format-time', description: 'Форматировать время', usedBy: ['bikeRental'] },
+                    { name: 'generate-id', description: 'Генерировать UUID' },
+                    { name: 'validate-qr-code', description: 'Валидировать QR', usedBy: ['qrScanner'] }
+                ]
+            }
+        };
+
+        // Состояние карты
+        let scale = 1;
+        let translateX = 0;
+        let translateY = 0;
+        let isDragging = false;
+        let dragStart = { x: 0, y: 0 };
+        let draggedNode = null;
+        let hoveredNode = null;
+
+        const svg = document.getElementById('mapSvg');
+        const nodesGroup = document.getElementById('nodes');
+        const connectionsGroup = document.getElementById('connections');
+        const previewPanel = document.getElementById('previewPanel');
+        let currentTransform = { x: 0, y: 0, scale: 1 };
+
+        // Инициализация карты
+        function initMap() {
+            renderConnections();
+            renderNodes();
+            updateTransform();
+        }
+
+        // Рендеринг соединений
+        function renderConnections() {
+            connectionsGroup.innerHTML = '';
+            
+            Object.values(logicMap).forEach(node => {
+                if (node.connections) {
+                    node.connections.forEach(targetId => {
+                        const target = logicMap[targetId];
+                        if (target) {
+                            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                            line.setAttribute('class', 'connection-line');
+                            line.setAttribute('x1', node.x);
+                            line.setAttribute('y1', node.y);
+                            line.setAttribute('x2', target.x);
+                            line.setAttribute('y2', target.y);
+                            connectionsGroup.appendChild(line);
+                        }
+                    });
+                }
+            });
+        }
+
+        // Рендеринг нод
+        function renderNodes() {
+            nodesGroup.innerHTML = '';
+            
+            Object.values(logicMap).forEach(node => {
+                const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                group.setAttribute('class', `node-group ${node.type}`);
+                group.setAttribute('transform', `translate(${node.x}, ${node.y})`);
+                group.dataset.nodeId = node.id;
+                
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('class', 'node-circle');
+                circle.setAttribute('r', '40');
+                
+                const icon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                icon.setAttribute('class', 'node-icon');
+                icon.textContent = node.icon;
+                
+                const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                label.setAttribute('class', 'node-label');
+                label.setAttribute('y', '55');
+                label.textContent = node.name;
+                
+                group.appendChild(circle);
+                group.appendChild(icon);
+                group.appendChild(label);
+                
+                // События
+                group.addEventListener('mouseenter', () => showPreview(node));
+                group.addEventListener('mouseleave', () => hidePreview());
+                group.addEventListener('mousedown', (e) => startDragNode(e, node));
+                
+                nodesGroup.appendChild(group);
+            });
+        }
+
+        // Превью при наведении
+        function showPreview(node) {
+            hoveredNode = node;
+            previewPanel.classList.add('visible');
+            
+            document.getElementById('previewIcon').textContent = node.icon;
+            document.getElementById('previewTitle').textContent = node.name;
+            document.getElementById('previewPath').textContent = node.path;
+            
+            const functionsDiv = document.getElementById('previewFunctions');
+            functionsDiv.innerHTML = '';
+            
+            if (node.functions) {
+                node.functions.forEach(func => {
+                    const funcDiv = document.createElement('div');
+                    funcDiv.className = 'preview-function';
+                    
+                    let callsHtml = '';
+                    if (func.calls && func.calls.length > 0) {
+                        callsHtml = `<div class="preview-calls">→ ${func.calls.join(', ')}</div>`;
+                    }
+                    
+                    funcDiv.innerHTML = `
+                        <div class="preview-function-name">⚡ ${func.name}()</div>
+                        <div class="preview-function-desc">${func.description || ''}</div>
+                        ${callsHtml}
+                    `;
+                    functionsDiv.appendChild(funcDiv);
+                });
+            }
+            
+            if (node.atoms) {
+                node.atoms.forEach(atom => {
+                    const atomDiv = document.createElement('div');
+                    atomDiv.className = 'preview-function';
+                    atomDiv.style.borderLeftColor = '#c586c0';
+                    
+                    let readByHtml = atom.readBy && atom.readBy.length > 0 
+                        ? `<div class="preview-calls">Read by: ${atom.readBy.join(', ')}</div>` : '';
+                    let writtenByHtml = atom.writtenBy && atom.writtenBy.length > 0 
+                        ? `<div class="preview-calls">Written by: ${atom.writtenBy.join(', ')}</div>` : '';
+                    
+                    atomDiv.innerHTML = `
+                        <div class="preview-function-name">💾 ${atom.name}</div>
+                        ${readByHtml}
+                        ${writtenByHtml}
+                    `;
+                    functionsDiv.appendChild(atomDiv);
+                });
+            }
+        }
+
+        function hidePreview() {
+            if (!draggedNode) {
+                previewPanel.classList.remove('visible');
+                hoveredNode = null;
+            }
+        }
+
+        // Drag & Drop нод
+        function startDragNode(e, node) {
+            e.stopPropagation();
+            draggedNode = node;
+            dragStart.x = e.clientX - node.x;
+            dragStart.y = e.clientY - node.y;
+            
+            document.addEventListener('mousemove', dragNode);
+            document.addEventListener('mouseup', stopDragNode);
+        }
+
+        function dragNode(e) {
+            if (draggedNode) {
+                draggedNode.x = e.clientX - dragStart.x;
+                draggedNode.y = e.clientY - dragStart.y;
+                renderConnections();
+                renderNodes();
+                if (hoveredNode === draggedNode) {
+                    showPreview(draggedNode);
+                }
+            }
+        }
+
+        function stopDragNode() {
+            draggedNode = null;
+            document.removeEventListener('mousemove', dragNode);
+            document.removeEventListener('mouseup', stopDragNode);
+        }
+
+        // Панорамирование карты
+        const canvas = document.getElementById('mapCanvas');
+        let isPanning = false;
+        let panStart = { x: 0, y: 0 };
+
+        canvas.addEventListener('mousedown', (e) => {
+            if (e.target === svg || e.target === canvas) {
+                isPanning = true;
+                panStart.x = e.clientX - translateX;
+                panStart.y = e.clientY - translateY;
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isPanning && !draggedNode) {
+                translateX = e.clientX - panStart.x;
+                translateY = e.clientY - panStart.y;
+                updateTransform();
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isPanning = false;
+        });
+
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? 0.9 : 1.1;
+            scale = Math.max(0.3, Math.min(3, scale * delta));
+            updateTransform();
+        });
+
+        function updateTransform() {
+            svg.setAttribute('transform', `translate(${translateX}, ${translateY}) scale(${scale})`);
+        }
+
+        // Управление
+        function resetView() {
+            scale = 1;
+            translateX = 0;
+            translateY = 0;
+            updateTransform();
+        }
+
+        function zoomIn() {
+            scale = Math.min(3, scale * 1.2);
+            updateTransform();
+        }
+
+        function zoomOut() {
+            scale = Math.max(0.3, scale * 0.8);
+            updateTransform();
+        }
+
+        function fitToScreen() {
+            // TODO: вычислить границы и подогнать
+            resetView();
+        }
+
+        // Поиск
+        document.getElementById('searchBox').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            Object.values(logicMap).forEach(node => {
+                const group = document.querySelector(`[data-node-id="${node.id}"]`);
+                if (group) {
+                    const text = node.name.toLowerCase() + ' ' + (node.path || '').toLowerCase();
+                    group.style.opacity = text.includes(query) ? '1' : '0.3';
+                }
+            });
+        });
+
+        // Инициализация
+        initMap();
+    </script>
+</body>
+</html>
+

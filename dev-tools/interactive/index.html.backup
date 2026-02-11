@@ -1,0 +1,2485 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bikes - Interactive Logic Map</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000000;
+            color: #ffffff;
+            overflow: visible;
+            height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            background: radial-gradient(ellipse at center, #1a1a1a 0%, #000000 100%);
+            overflow: visible;
+        }
+
+        .map-canvas {
+            flex: 1;
+            position: relative;
+            overflow: auto;
+            cursor: grab;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .map-canvas:active {
+            cursor: grabbing;
+        }
+
+        .map-canvas.dragging-node {
+            cursor: move;
+        }
+
+        .map-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            min-width: 100%;
+            min-height: 100%;
+            background: 
+                radial-gradient(circle at 20% 30%, rgba(78, 201, 176, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(220, 220, 170, 0.05) 0%, transparent 50%),
+                #000000;
+        }
+
+        /* JSON-подобные ноды */
+        .node-group {
+            cursor: move;
+        }
+
+        .node-container {
+            filter: drop-shadow(0 0 8px rgba(78, 201, 176, 0.5));
+        }
+
+        .node-group:hover .node-container {
+            filter: drop-shadow(0 0 15px rgba(78, 201, 176, 0.8));
+        }
+
+        .node-rect {
+            fill: rgba(20, 20, 20, 0.95);
+            stroke-width: 1.5;
+            rx: 4;
+            transition: all 0.2s;
+        }
+
+        .node-group.screen .node-rect {
+            stroke: #4ec9b0;
+        }
+
+        .node-group.component .node-rect {
+            stroke: #dcdcaa;
+        }
+
+        .node-group.service .node-rect {
+            stroke: #ce9178;
+        }
+
+        .node-group.state .node-rect {
+            stroke: #c586c0;
+        }
+
+        .node-group.util .node-rect {
+            stroke: #9cdcfe;
+        }
+
+        .node-group.app .node-rect {
+            stroke: #569cd6;
+        }
+
+        .node-group.entry .node-rect {
+            stroke: #d4d4d4;
+        }
+
+        .node-group:hover .node-rect {
+            stroke-width: 2.5;
+        }
+
+        /* JSON стиль текста */
+        .node-json-brace {
+            font-size: 14px;
+            fill: #d4d4d4;
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        .node-json-key {
+            font-size: 10px;
+            fill: #9cdcfe;
+            font-family: monospace;
+        }
+
+        .node-json-value {
+            font-size: 9px;
+            fill: #ce9178;
+            font-family: monospace;
+        }
+
+        .node-json-string {
+            font-size: 9px;
+            fill: #ce9178;
+            font-family: monospace;
+        }
+
+        .node-json-number {
+            font-size: 9px;
+            fill: #b5cea8;
+            font-family: monospace;
+        }
+
+        .node-json-icon {
+            font-size: 12px;
+        }
+
+        .node-json-array {
+            font-size: 9px;
+            fill: #dcdcaa;
+            font-family: monospace;
+        }
+
+        /* Размеры текста по уровням вложенности */
+        .node-level-0 .node-json-key { font-size: 14px; }
+        .node-level-0 .node-json-value { font-size: 13px; }
+        .node-level-0 .node-json-icon { font-size: 18px; }
+        
+        .node-level-1 .node-json-key { font-size: 12px; }
+        .node-level-1 .node-json-value { font-size: 11px; }
+        .node-level-1 .node-json-icon { font-size: 16px; }
+        
+        .node-level-2 .node-json-key { font-size: 10px; }
+        .node-level-2 .node-json-value { font-size: 9px; }
+        .node-level-2 .node-json-icon { font-size: 14px; }
+        
+        .node-level-3 .node-json-key { font-size: 9px; }
+        .node-level-3 .node-json-value { font-size: 8px; }
+        .node-level-3 .node-json-icon { font-size: 12px; }
+
+        /* Соединительные линии - разные типы */
+        .connection-line {
+            stroke-width: 1;
+            fill: none;
+            marker-end: url(#arrowhead);
+            opacity: 0.4;
+        }
+
+        .connection-line:hover {
+            opacity: 0.8;
+            stroke-width: 2;
+        }
+
+        .connection-structural {
+            stroke: rgba(78, 201, 176, 0.5);
+        }
+
+        .connection-call {
+            stroke: rgba(220, 220, 170, 0.6);
+        }
+
+        .connection-read {
+            stroke: rgba(78, 201, 176, 0.4);
+            stroke-dasharray: 3,3;
+        }
+
+        .connection-write {
+            stroke: rgba(197, 134, 192, 0.6);
+        }
+
+        .connection-service {
+            stroke: rgba(206, 145, 120, 0.6);
+        }
+
+        /* Превью панель */
+        .preview-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 400px;
+            max-height: 80vh;
+            background: rgba(0, 0, 0, 0.95);
+            border: 2px solid #4ec9b0;
+            border-radius: 12px;
+            padding: 20px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        }
+
+        .preview-panel.visible {
+            display: block;
+        }
+
+        .preview-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(78, 201, 176, 0.3);
+        }
+
+        .preview-icon {
+            font-size: 32px;
+        }
+
+        .preview-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #4ec9b0;
+        }
+
+        .preview-path {
+            font-size: 11px;
+            color: #858585;
+            font-family: monospace;
+            margin-top: 5px;
+        }
+
+        .preview-functions {
+            margin-top: 15px;
+        }
+
+        .preview-function {
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 3px solid #4ec9b0;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+        }
+
+        .preview-function-name {
+            font-size: 14px;
+            color: #dcdcaa;
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+
+        .preview-function-desc {
+            font-size: 11px;
+            color: #858585;
+        }
+
+        .preview-calls {
+            margin-top: 8px;
+            font-size: 10px;
+            color: #6a9955;
+        }
+
+        .preview-call {
+            margin: 2px 0;
+            font-family: monospace;
+        }
+
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 100;
+            display: flex;
+            gap: 10px;
+        }
+
+        .control-btn {
+            padding: 10px 15px;
+            background: rgba(78, 201, 176, 0.2);
+            border: 1px solid #4ec9b0;
+            border-radius: 6px;
+            color: #4ec9b0;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .control-btn:hover {
+            background: rgba(78, 201, 176, 0.3);
+            transform: scale(1.05);
+        }
+        
+        .control-btn.active {
+            background: rgba(78, 201, 176, 0.4);
+            border-color: #4ec9b0;
+        }
+        
+        .status-indicator {
+            position: fixed;
+            top: 70px;
+            left: 20px;
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(78, 201, 176, 0.3);
+            border-radius: 6px;
+            color: #4ec9b0;
+            font-size: 11px;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .status-indicator.loading {
+            border-color: #dcdcaa;
+            color: #dcdcaa;
+        }
+        
+        .status-indicator.success {
+            border-color: #6a9955;
+            color: #6a9955;
+        }
+        
+        .status-indicator.error {
+            border-color: #f48771;
+            color: #f48771;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .search-box {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 300px;
+            padding: 12px 16px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid rgba(78, 201, 176, 0.3);
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 14px;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #4ec9b0;
+            box-shadow: 0 0 15px rgba(78, 201, 176, 0.3);
+        }
+
+        .arrowhead {
+            fill: rgba(78, 201, 176, 0.5);
+        }
+
+        .arrowhead-call {
+            fill: rgba(220, 220, 170, 0.6);
+        }
+
+        .arrowhead-read {
+            fill: rgba(78, 201, 176, 0.4);
+        }
+
+        .arrowhead-write {
+            fill: rgba(197, 134, 192, 0.6);
+        }
+
+        .arrowhead-service {
+            fill: rgba(206, 145, 120, 0.6);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="map-canvas" id="mapCanvas">
+            <svg class="map-svg" id="mapSvg">
+                <defs>
+                    <marker id="arrowhead" markerWidth="8" markerHeight="8" refX="7" refY="2.5" orient="auto">
+                        <polygon points="0 0, 8 2.5, 0 5" class="arrowhead" />
+                    </marker>
+                    <marker id="arrowhead-call" markerWidth="8" markerHeight="8" refX="7" refY="2.5" orient="auto">
+                        <polygon points="0 0, 8 2.5, 0 5" class="arrowhead-call" />
+                    </marker>
+                    <marker id="arrowhead-read" markerWidth="8" markerHeight="8" refX="7" refY="2.5" orient="auto">
+                        <polygon points="0 0, 8 2.5, 0 5" class="arrowhead-read" />
+                    </marker>
+                    <marker id="arrowhead-write" markerWidth="8" markerHeight="8" refX="7" refY="2.5" orient="auto">
+                        <polygon points="0 0, 8 2.5, 0 5" class="arrowhead-write" />
+                    </marker>
+                    <marker id="arrowhead-service" markerWidth="8" markerHeight="8" refX="7" refY="2.5" orient="auto">
+                        <polygon points="0 0, 8 2.5, 0 5" class="arrowhead-service" />
+                    </marker>
+                </defs>
+                <g id="transform-group">
+                    <g id="connections"></g>
+                    <g id="nodes"></g>
+                </g>
+            </svg>
+        </div>
+    </div>
+
+    <input type="text" class="search-box" placeholder="🔍 Поиск..." id="searchBox">
+
+    <div class="controls">
+        <button class="control-btn" onclick="reloadData()">🔄 Обновить данные</button>
+        <button class="control-btn" onclick="resetView()">🎯 Сброс вида</button>
+        <button class="control-btn" onclick="zoomIn()">➕ Увеличить</button>
+        <button class="control-btn" onclick="zoomOut()">➖ Уменьшить</button>
+        <button class="control-btn" onclick="fitToScreen()">📐 По размеру</button>
+        <button class="control-btn" id="autoReloadBtn" onclick="toggleAutoReload()">⏸️ Авто-обновление</button>
+    </div>
+    
+    <div id="statusIndicator" class="status-indicator">
+        <span id="statusText">Загрузка...</span>
+    </div>
+
+    <div class="preview-panel" id="previewPanel">
+        <div class="preview-header">
+            <div class="preview-icon" id="previewIcon">📱</div>
+            <div>
+                <div class="preview-title" id="previewTitle">Node Name</div>
+                <div class="preview-path" id="previewPath">path/to/file.cljd</div>
+            </div>
+        </div>
+        <div class="preview-functions" id="previewFunctions"></div>
+    </div>
+
+    <script src="renderer.js"></script>
+    <script>
+        // Загружаем данные проекта
+        let projectData = null;
+        let autoReloadEnabled = false;
+        let autoReloadInterval = null;
+        let lastModified = null;
+        
+        function updateStatus(text, type = 'success') {
+            const statusIndicator = document.getElementById('statusIndicator');
+            const statusText = document.getElementById('statusText');
+            statusIndicator.className = `status-indicator ${type}`;
+            statusText.textContent = text;
+        }
+        
+        async function loadProjectData(showStatus = true) {
+            try {
+                if (showStatus) {
+                    updateStatus('Загрузка данных...', 'loading');
+                }
+                
+                // Добавляем timestamp для предотвращения кеширования
+                const response = await fetch(`project-data.json?t=${Date.now()}`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                // Проверяем, изменились ли данные
+                const dataHash = JSON.stringify(data);
+                if (dataHash === JSON.stringify(projectData)) {
+                    if (showStatus) {
+                        updateStatus('Данные актуальны', 'success');
+                        setTimeout(() => updateStatus('', 'success'), 2000);
+                    }
+                    return false; // Данные не изменились
+                }
+                
+                projectData = data;
+                console.log('✅ Project data loaded:', projectData);
+                
+                if (showStatus) {
+                    updateStatus('Данные загружены', 'success');
+                    setTimeout(() => updateStatus('', 'success'), 2000);
+                }
+                
+                // Перерисовываем карту
+                renderNodes();
+                updateTransform();
+                
+                return true; // Данные изменились
+            } catch (error) {
+                console.error('❌ Error loading project data:', error);
+                updateStatus(`Ошибка: ${error.message}`, 'error');
+                
+                // Fallback на встроенные данные только при первой загрузке
+                if (!projectData) {
+                    projectData = {
+                        tree: {
+                            app: { level: 0, parent: null, children: ['home'], subCards: [] }
+                        },
+                        nodes: {
+                            app: { id: 'app', type: 'app', name: 'App', icon: '📱', path: 'src/bikes/app.cljd' }
+                        }
+                    };
+                    renderNodes();
+                    updateTransform();
+                }
+                return false;
+            }
+        }
+        
+        function reloadData() {
+            loadProjectData(true);
+        }
+        
+        function toggleAutoReload() {
+            autoReloadEnabled = !autoReloadEnabled;
+            const btn = document.getElementById('autoReloadBtn');
+            
+            if (autoReloadEnabled) {
+                btn.textContent = '▶️ Авто-обновление';
+                btn.classList.add('active');
+                // Проверяем каждые 2 секунды
+                autoReloadInterval = setInterval(() => {
+                    loadProjectData(false); // Без показа статуса при авто-обновлении
+                }, 2000);
+                updateStatus('Авто-обновление включено', 'success');
+                setTimeout(() => updateStatus('', 'success'), 2000);
+            } else {
+                btn.textContent = '⏸️ Авто-обновление';
+                btn.classList.remove('active');
+                if (autoReloadInterval) {
+                    clearInterval(autoReloadInterval);
+                    autoReloadInterval = null;
+                }
+                updateStatus('Авто-обновление выключено', 'success');
+                setTimeout(() => updateStatus('', 'success'), 2000);
+            }
+        }
+        
+        // Построение иерархического JSON дерева с дочерними карточками
+        // Простая рекурсивная функция для рендеринга JSON структуры
+        function renderJSONStructure(data, x, y, level = 0) {
+            if (!data || typeof data !== 'object') {
+                return y;
+            }
+            
+            const indentSize = 30;
+            const baseFontSize = 14;
+            const maxFontSize = 32;
+            
+            // Подсчитываем количество потомков для размера шрифта
+            const countDescendants = (obj) => {
+                if (!obj || typeof obj !== 'object') return 0;
+                let count = Object.keys(obj).length;
+                for (const key in obj) {
+                    count += countDescendants(obj[key]);
+                }
+                return count;
+            };
+            
+            const descendantsCount = countDescendants(data);
+            const fontSize = Math.min(baseFontSize + descendantsCount * 0.8, maxFontSize);
+            
+            const keys = Object.keys(data);
+            
+            keys.forEach((key, idx) => {
+                const value = data[key];
+                const isLast = idx === keys.length - 1;
+                
+                // Определяем, является ли значение объектом (имеет вложенность)
+                const hasChildren = value && typeof value === 'object' && Object.keys(value).length > 0;
+                
+                // Вычисляем ширину текста для фона
+                const keyTextWidth = fontSize * (key.length + 2) * 0.6;
+                const keyTextHeight = fontSize * 1.2;
+                const padding = 4;
+                
+                // Создаем полупрозрачный фон для ключа
+                const keyBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                keyBg.setAttribute('x', x - padding);
+                keyBg.setAttribute('y', y - fontSize * 0.85);
+                keyBg.setAttribute('width', keyTextWidth + padding * 2);
+                keyBg.setAttribute('height', keyTextHeight);
+                keyBg.setAttribute('rx', '4');
+                keyBg.setAttribute('ry', '4');
+                keyBg.setAttribute('fill', '#ffffff');
+                keyBg.setAttribute('fill-opacity', '0.15');
+                nodesGroup.appendChild(keyBg);
+                
+                // Рисуем ключ
+                const keyText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                keyText.setAttribute('x', x);
+                keyText.setAttribute('y', y);
+                keyText.setAttribute('font-size', fontSize);
+                keyText.setAttribute('font-weight', 'bold');
+                keyText.setAttribute('fill', '#ffffff');
+                keyText.setAttribute('font-family', 'monospace');
+                keyText.textContent = `"${key}"`;
+                nodesGroup.appendChild(keyText);
+                
+                // Двоеточие
+                const colon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                colon.setAttribute('x', x + fontSize * (key.length + 2) * 0.6);
+                colon.setAttribute('y', y);
+                colon.setAttribute('font-size', fontSize);
+                colon.setAttribute('fill', '#858585');
+                colon.setAttribute('font-family', 'monospace');
+                colon.textContent = hasChildren ? ': {' : ': {}';
+                nodesGroup.appendChild(colon);
+                
+                y += fontSize * 1.5;
+                
+                // Рекурсивно рендерим дочерние элементы
+                if (hasChildren) {
+                    y = renderJSONStructure(value, x + indentSize, y, level + 1);
+                    
+                    // Закрывающая скобка
+                    const closeBrace = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    closeBrace.setAttribute('x', x);
+                    closeBrace.setAttribute('y', y);
+                    closeBrace.setAttribute('font-size', fontSize);
+                    closeBrace.setAttribute('fill', '#858585');
+                    closeBrace.setAttribute('font-family', 'monospace');
+                    closeBrace.textContent = '}';
+                    nodesGroup.appendChild(closeBrace);
+                    
+                    y += fontSize * 1.2;
+                }
+                
+                // Запятая (если не последний элемент)
+                if (!isLast) {
+                    const comma = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    comma.setAttribute('x', x - 10);
+                    comma.setAttribute('y', y - fontSize * 0.3);
+                    comma.setAttribute('font-size', fontSize);
+                    comma.setAttribute('fill', '#858585');
+                    comma.setAttribute('font-family', 'monospace');
+                    comma.textContent = ',';
+                    nodesGroup.appendChild(comma);
+                }
+            });
+            
+            return y;
+        }
+        
+        // Устаревшие функции (оставляем для совместимости, но не используем)
+        function buildJSONTree() {
+            return projectData || {};
+        }
+
+        function positionJSONTree() {
+            return {};
+            
+            const logicMap = {};
+            const nodesByLevel = {};
+            const allNodes = []; // Все ноды включая подкарточки
+            
+            // Сначала добавляем основные ноды
+            Object.entries(tree).forEach(([id, data]) => {
+                if (!nodesByLevel[data.level]) {
+                    nodesByLevel[data.level] = [];
+                }
+                nodesByLevel[data.level].push({ id, ...data, isSubCard: false });
+                allNodes.push({ id, ...data, isSubCard: false });
+            });
+            
+            // Добавляем подкарточки как отдельные ноды
+            Object.entries(tree).forEach(([parentId, parentData]) => {
+                if (parentData.subCards && parentData.subCards.length > 0) {
+                    parentData.subCards.forEach((subCardId) => {
+                        const subCardInfo = getSubCardInfo(subCardId, parentId, parentData);
+                        if (subCardInfo) {
+                            const subCardLevel = parentData.level + 1;
+                            if (!nodesByLevel[subCardLevel]) {
+                                nodesByLevel[subCardLevel] = [];
+                            }
+                            nodesByLevel[subCardLevel].push({ 
+                                id: subCardId, 
+                                parent: parentId,
+                                level: subCardLevel,
+                                isSubCard: true,
+                                ...subCardInfo
+                            });
+                            allNodes.push({ 
+                                id: subCardId, 
+                                parent: parentId,
+                                level: subCardLevel,
+                                isSubCard: true,
+                                ...subCardInfo
+                            });
+                        }
+                    });
+                }
+            });
+            
+            // Вычисляем размеры всех нод
+            const nodeSizes = {};
+            allNodes.forEach((nodeData) => {
+                const nodeId = nodeData.id;
+                const nodeInfo = nodeData.isSubCard ? nodeData : getNodeInfo(nodeId);
+                const levelNum = nodeData.level;
+                
+                const height = calculateNodeHeight(nodeInfo, levelNum, nodeData.isSubCard);
+                const width = calculateNodeWidth(nodeInfo, levelNum, nodeData.isSubCard);
+                
+                nodeSizes[nodeId] = { width, height };
+            });
+            
+            // Позиционируем по уровням слева направо
+            Object.keys(nodesByLevel).sort((a, b) => parseInt(a) - parseInt(b)).forEach(level => {
+                const nodes = nodesByLevel[level];
+                const levelNum = parseInt(level);
+                
+                // Разделяем на основные ноды и подкарточки
+                const rootNodes = nodes.filter(n => !n.isSubCard);
+                const subCardsByParent = {};
+                
+                nodes.forEach(node => {
+                    if (node.isSubCard && node.parent) {
+                        if (!subCardsByParent[node.parent]) {
+                            subCardsByParent[node.parent] = [];
+                        }
+                        subCardsByParent[node.parent].push(node);
+                    }
+                });
+                
+                // Позиционируем основные ноды
+                let currentY = startY;
+                rootNodes.forEach((nodeData) => {
+                    const nodeId = nodeData.id;
+                    const nodeInfo = getNodeInfo(nodeId);
+                    const size = nodeSizes[nodeId];
+                    const x = startX + (levelNum * levelSpacing);
+                    
+                    logicMap[nodeId] = {
+                        ...nodeInfo,
+                        x: x,
+                        y: currentY,
+                        width: size.width,
+                        height: size.height,
+                        level: levelNum,
+                        isSubCard: false
+                    };
+                    
+                    // Позиционируем подкарточки справа от родителя
+                    if (subCardsByParent[nodeId]) {
+                        const subCardX = x + size.width + subCardSpacing;
+                        let subCardY = currentY;
+                        
+                        subCardsByParent[nodeId].forEach((subCard) => {
+                            // Используем данные из subCard напрямую (они уже содержат всю информацию)
+                            const subCardSize = nodeSizes[subCard.id];
+                            
+                            logicMap[subCard.id] = {
+                                id: subCard.id,
+                                type: subCard.type || 'subcard',
+                                name: subCard.name || subCard.id,
+                                icon: subCard.icon || '📄',
+                                path: subCard.path || `${parentInfo.path}::${subCard.id}`,
+                                structure: subCard.structure,
+                                description: subCard.description,
+                                calls: subCard.calls,
+                                reads: subCard.reads,
+                                writes: subCard.writes,
+                                uiType: subCard.uiType,
+                                content: subCard.content,
+                                readBy: subCard.readBy,
+                                writtenBy: subCard.writtenBy,
+                                x: subCardX,
+                                y: subCardY,
+                                width: subCardSize.width,
+                                height: subCardSize.height,
+                                level: levelNum, // На том же уровне, но справа
+                                isSubCard: true,
+                                parent: nodeId
+                            };
+                            
+                            console.log('📍 Positioned subcard:', subCard.id, 'at', subCardX, subCardY, 'for parent:', nodeId, 'size:', subCardSize);
+                            
+                            subCardY += subCardSize.height + nodeSpacing;
+                        });
+                    }
+                    
+                    currentY += size.height + nodeSpacing;
+                });
+            });
+            
+            const subcards = Object.values(logicMap).filter(n => n.isSubCard);
+            console.log('🗺️ LogicMap created with', Object.keys(logicMap).length, 'total nodes');
+            console.log('📦 Subcards:', subcards.length, subcards.map(n => ({id: n.id, parent: n.parent, x: n.x, y: n.y})));
+            
+            return logicMap;
+        }
+        
+        // Получение информации о подкарточке (используем данные как в preview)
+        function getSubCardInfo(subCardId, parentId, parentData) {
+            const parentInfo = getNodeInfo(parentId);
+            
+            // Atoms для appState
+            if (subCardId.startsWith('atom-')) {
+                const atomName = subCardId.replace('atom-', '');
+                console.log('🔍 Looking for atom:', atomName, 'in parent:', parentId);
+                console.log('📋 Available atoms:', parentInfo.atoms?.map(a => a.name) || 'none');
+                const atom = parentInfo.atoms?.find(a => a.name === atomName);
+                if (atom) {
+                    console.log('✅ Found atom:', atom.name, 'with structure:', atom.structure);
+                    return {
+                        id: subCardId,
+                        type: 'atom',
+                        name: atom.name,
+                        icon: '💾',
+                        path: `${parentInfo.path}::${atom.name}`,
+                        structure: atom.structure,
+                        readBy: atom.readBy || [],
+                        writtenBy: atom.writtenBy || []
+                    };
+                } else {
+                    console.error('❌ Atom not found!', atomName, 'Available:', parentInfo.atoms?.map(a => a.name));
+                }
+            }
+            
+            // Functions для services - ищем точное совпадение
+            if (subCardId.startsWith('func-')) {
+                const funcNameFromId = subCardId.replace('func-', '');
+                // Ищем функцию - пробуем разные варианты
+                let func = null;
+                if (parentInfo.functions) {
+                    // Прямое совпадение
+                    func = parentInfo.functions.find(f => f.name === funcNameFromId);
+                    // Если не нашли, пробуем с заменой дефисов
+                    if (!func) {
+                        func = parentInfo.functions.find(f => {
+                            const fNameNormalized = f.name.replace(/_/g, '-');
+                            return fNameNormalized === funcNameFromId;
+                        });
+                    }
+                }
+                if (func) {
+                    return {
+                        id: subCardId,
+                        type: 'function',
+                        name: func.name,
+                        icon: '⚡',
+                        path: `${parentInfo.path}::${func.name}`,
+                        description: func.description,
+                        calls: func.calls || [],
+                        reads: func.reads || [],
+                        writes: func.writes || []
+                    };
+                }
+            }
+            
+            // UI компоненты для screens
+            if (subCardId.includes('-ui-')) {
+                const parts = subCardId.split('-ui-');
+                const uiKey = parts[1].replace(/-/g, ' '); // Заменяем дефисы на пробелы
+                const uiItem = parentInfo.ui?.structure?.[uiKey];
+                if (uiItem) {
+                    return {
+                        id: subCardId,
+                        type: 'ui-component',
+                        name: uiKey,
+                        icon: '🎨',
+                        path: `${parentInfo.path}::${uiKey}`,
+                        uiType: uiItem.type,
+                        content: uiItem
+                    };
+                }
+            }
+            
+            return null;
+        }
+
+        function calculateNodeHeight(nodeInfo, level, isSubCard = false) {
+            if (isSubCard) {
+                // Подкарточки компактнее
+                let height = 60; // базовая высота
+                
+                if (nodeInfo.structure) {
+                    height += 20 + Object.keys(nodeInfo.structure).length * 14;
+                }
+                if (nodeInfo.description) {
+                    height += 16;
+                }
+                if (nodeInfo.calls && nodeInfo.calls.length > 0) {
+                    height += 16;
+                }
+                if (nodeInfo.uiType) {
+                    height += 20;
+                }
+                
+                return Math.max(80, height);
+            }
+            
+            // Основные карточки - только заголовок и путь, без деталей (детали в подкарточках)
+            let height = 70; // базовая высота с заголовком
+            
+            // Показываем только краткую информацию в основной карточке
+            if (nodeInfo.atoms) {
+                height += 20; // просто упоминание количества
+            }
+            if (nodeInfo.functions) {
+                height += 20; // просто упоминание количества
+            }
+            if (nodeInfo.ui && nodeInfo.ui.structure) {
+                height += 20; // просто упоминание количества
+            }
+            
+            height += 20; // отступы
+            return Math.max(100, height);
+        }
+        
+        function calculateNodeWidth(nodeInfo, level, isSubCard = false) {
+            if (isSubCard) {
+                // Подкарточки уже
+                let contentWidth = 250;
+                const nameWidth = (nodeInfo.name || '').length * (12 - level);
+                contentWidth = Math.max(250, nameWidth + 100);
+                return contentWidth;
+            }
+            
+            // Основные карточки
+            let contentWidth = 280;
+            const nameWidth = (nodeInfo.name || '').length * (13 - level);
+            const maxContentWidth = Math.max(
+                nameWidth + 100,
+                nodeInfo.path ? nodeInfo.path.length * 7 : 0
+            );
+            contentWidth = Math.max(280, maxContentWidth);
+            return contentWidth;
+        }
+
+        function getNodeInfo(nodeId) {
+            if (!projectData || !projectData.nodes) {
+                console.warn('Project data not loaded yet');
+                return {};
+            }
+            return projectData.nodes[nodeId] || {};
+        }
+
+        // Инициализация карты как JSON дерева
+        const logicMap = positionJSONTree();
+
+        let scale = 1;
+        let translateX = 0;
+        let translateY = 0;
+        let draggedNode = null;
+        let hoveredNode = null;
+
+        const svg = document.getElementById('mapSvg');
+        const nodesGroup = document.getElementById('nodes');
+        const connectionsGroup = document.getElementById('connections');
+        const previewPanel = document.getElementById('previewPanel');
+
+        // Рендеринг соединений - кривые линии для всех вызовов
+        function renderConnections() {
+            connectionsGroup.innerHTML = '';
+            
+            Object.values(logicMap).forEach(node => {
+                if (node.functions) {
+                    node.functions.forEach(func => {
+                        if (func.calls) {
+                            func.calls.forEach(call => {
+                                const target = logicMap[call.target];
+                                if (target) {
+                                    const path = createCurvedPath(node, target, call.type);
+                                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                                    line.setAttribute('d', path);
+                                    line.setAttribute('class', `connection-line connection-${call.type}`);
+                                    
+                                    // Разные маркеры для разных типов
+                                    if (call.type === 'call') {
+                                        line.setAttribute('marker-end', 'url(#arrowhead-call)');
+                                    } else if (call.type === 'read') {
+                                        line.setAttribute('marker-end', 'url(#arrowhead-read)');
+                                    } else if (call.type === 'write') {
+                                        line.setAttribute('marker-end', 'url(#arrowhead-write)');
+                                    } else if (call.type === 'service') {
+                                        line.setAttribute('marker-end', 'url(#arrowhead-service)');
+                                    } else {
+                                        line.setAttribute('marker-end', 'url(#arrowhead)');
+                                    }
+                                    
+                                    connectionsGroup.appendChild(line);
+                                }
+                            });
+                        }
+                        if (func.reads) {
+                            func.reads.forEach(read => {
+                                const target = logicMap[read.target];
+                                if (target) {
+                                    const path = createCurvedPath(node, target, 'read');
+                                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                                    line.setAttribute('d', path);
+                                    line.setAttribute('class', 'connection-line connection-read');
+                                    line.setAttribute('marker-end', 'url(#arrowhead-read)');
+                                    connectionsGroup.appendChild(line);
+                                }
+                            });
+                        }
+                        if (func.writes) {
+                            func.writes.forEach(write => {
+                                const target = logicMap[write.target];
+                                if (target) {
+                                    const path = createCurvedPath(node, target, 'write');
+                                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                                    line.setAttribute('d', path);
+                                    line.setAttribute('class', 'connection-line connection-write');
+                                    line.setAttribute('marker-end', 'url(#arrowhead-write)');
+                                    connectionsGroup.appendChild(line);
+                                }
+                            });
+                        }
+                    });
+                }
+            });
+        }
+
+        // Создание кривой линии
+        function createCurvedPath(from, to, type) {
+            const x1 = from.x + from.width / 2;
+            const y1 = from.y + from.height;
+            const x2 = to.x + to.width / 2;
+            const y2 = to.y;
+            
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const midY = (y1 + y2) / 2;
+            
+            // Кривая Безье
+            const cp1x = x1 + dx * 0.5;
+            const cp1y = y1;
+            const cp2x = x2 - dx * 0.5;
+            const cp2y = y2;
+            
+            return `M ${x1} ${y1} C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${x2} ${y2}`;
+        }
+
+        // Подсчет количества дочерних элементов для определения размера шрифта
+        function countChildren(nodeId, logicMap, tree) {
+            let count = 0;
+            const node = tree[nodeId];
+            if (node) {
+                // Считаем children
+                if (node.children) count += node.children.length;
+                // Считаем subCards
+                if (node.subCards) count += node.subCards.length;
+            }
+            return count;
+        }
+        
+        // Рекурсивный подсчет всех потомков
+        function countAllDescendants(nodeId, tree, visited = new Set()) {
+            if (visited.has(nodeId)) return 0;
+            visited.add(nodeId);
+            
+            let count = 0;
+            const node = tree[nodeId];
+            if (node) {
+                if (node.children) {
+                    count += node.children.length;
+                    node.children.forEach(childId => {
+                        count += countAllDescendants(childId, tree, visited);
+                    });
+                }
+                if (node.subCards) {
+                    count += node.subCards.length;
+                }
+            }
+            return count;
+        }
+        
+        // Общая функция для создания полупрозрачного фона для ключа
+        function createKeyBackground(x, y, keyText, fontSize, color, iconOffset = 0) {
+            const padding = fontSize < 10 ? 2 : 3;
+            const keyWidth = fontSize * (keyText.length + 2) * 0.6;
+            const keyHeight = fontSize * 1.2;
+            
+            const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            bg.setAttribute('x', x + iconOffset - padding);
+            bg.setAttribute('y', y - fontSize * 0.85);
+            bg.setAttribute('width', keyWidth + padding * 2);
+            bg.setAttribute('height', keyHeight);
+            bg.setAttribute('rx', fontSize < 10 ? 3 : 4);
+            bg.setAttribute('ry', fontSize < 10 ? 3 : 4);
+            bg.setAttribute('fill', color);
+            bg.setAttribute('fill-opacity', '0.15');
+            
+            return bg;
+        }
+        
+        // Общая функция для создания полупрозрачного фона для ключ: значение
+        function createKeyValueBackground(x, y, keyText, valueText, fontSize, color, iconOffset = 0) {
+            const padding = fontSize < 10 ? 2 : 3;
+            const keyWidth = fontSize * (keyText.length + 2) * 0.6;
+            const valueWidth = fontSize * (valueText.length + 2) * 0.6;
+            const totalWidth = keyWidth + fontSize * 2 + valueWidth; // ключ + ": " + значение
+            const keyHeight = fontSize * 1.2;
+            
+            const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            bg.setAttribute('x', x + iconOffset - padding);
+            bg.setAttribute('y', y - fontSize * 0.85);
+            bg.setAttribute('width', totalWidth + padding * 2);
+            bg.setAttribute('height', keyHeight);
+            bg.setAttribute('rx', fontSize < 10 ? 3 : 4);
+            bg.setAttribute('ry', fontSize < 10 ? 3 : 4);
+            bg.setAttribute('fill', color);
+            bg.setAttribute('fill-opacity', '0.15');
+            
+            return bg;
+        }
+        
+        // Общие цвета для разных типов ключей
+        const keyColors = {
+            'main': '#ffffff',
+            'nested': '#9cdcfe',
+            'ui': '#4ec9b0',
+            'value': '#ce9178',
+            'state': '#c586c0',
+            'action': '#dcdcaa'
+        };
+        
+        // Получение используемых стейтов для UI компонента
+        function getUsedStatesForUI(uiName, screenId, screenInfo) {
+            if (!projectData || !projectData.uiStateMapping) {
+                return [];
+            }
+            
+            if (projectData.uiStateMapping[screenId] && projectData.uiStateMapping[screenId][uiName]) {
+                return projectData.uiStateMapping[screenId][uiName];
+            }
+            
+            // Если нет явного маппинга, берем из reads функций screen
+            if (screenInfo.functions) {
+                const allReads = [];
+                screenInfo.functions.forEach(func => {
+                    if (func.reads) {
+                        func.reads.forEach(read => {
+                            if (read.atom && !allReads.includes(read.atom)) {
+                                allReads.push(read.atom);
+                            }
+                        });
+                    }
+                });
+                return allReads;
+            }
+            
+            return [];
+        }
+        
+        // Получение вызываемых экшенов для UI компонента
+        function getUsedActionsForUI(uiName, screenId, screenInfo) {
+            if (!projectData || !projectData.uiActionMapping) {
+                return [];
+            }
+            
+            if (projectData.uiActionMapping[screenId] && projectData.uiActionMapping[screenId][uiName]) {
+                return projectData.uiActionMapping[screenId][uiName];
+            }
+            
+            // Если нет явного маппинга, берем из calls функций screen
+            if (screenInfo.functions) {
+                const allActions = [];
+                screenInfo.functions.forEach(func => {
+                    if (func.calls) {
+                        func.calls.forEach(call => {
+                            const actionName = call.target === 'bluetooth' || call.target === 'api' 
+                                ? `${call.target}.${call.func || 'unknown'}` 
+                                : call.target;
+                            if (!allActions.includes(actionName)) {
+                                allActions.push(actionName);
+                            }
+                        });
+                    }
+                });
+                return allActions;
+            }
+            
+            return [];
+        }
+        
+        // Простая рекурсивная функция для рендеринга JSON структуры
+        function renderJSONStructure(data, x, y, level = 0) {
+            if (!data || typeof data !== 'object') {
+                return y;
+            }
+            
+            const indentSize = 30;
+            const baseFontSize = 14;
+            const maxFontSize = 32;
+            
+            // Подсчитываем количество потомков для размера шрифта
+            const countDescendants = (obj) => {
+                if (!obj || typeof obj !== 'object') return 0;
+                let count = Object.keys(obj).length;
+                for (const key in obj) {
+                    count += countDescendants(obj[key]);
+                }
+                return count;
+            };
+            
+            const descendantsCount = countDescendants(data);
+            const fontSize = Math.min(baseFontSize + descendantsCount * 0.8, maxFontSize);
+            
+            const keys = Object.keys(data);
+            
+            keys.forEach((key, idx) => {
+                const value = data[key];
+                const isLast = idx === keys.length - 1;
+                
+                // Определяем, является ли значение объектом (имеет вложенность)
+                const hasChildren = value && typeof value === 'object' && Object.keys(value).length > 0;
+                
+                // Вычисляем ширину текста для фона
+                const keyTextWidth = fontSize * (key.length + 2) * 0.6;
+                const keyTextHeight = fontSize * 1.2;
+                const padding = 4;
+                
+                // Создаем полупрозрачный фон для ключа
+                const keyBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                keyBg.setAttribute('x', x - padding);
+                keyBg.setAttribute('y', y - fontSize * 0.85);
+                keyBg.setAttribute('width', keyTextWidth + padding * 2);
+                keyBg.setAttribute('height', keyTextHeight);
+                keyBg.setAttribute('rx', '4');
+                keyBg.setAttribute('ry', '4');
+                keyBg.setAttribute('fill', '#ffffff');
+                keyBg.setAttribute('fill-opacity', '0.15');
+                nodesGroup.appendChild(keyBg);
+                
+                // Рисуем ключ
+                const keyText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                keyText.setAttribute('x', x);
+                keyText.setAttribute('y', y);
+                keyText.setAttribute('font-size', fontSize);
+                keyText.setAttribute('font-weight', 'bold');
+                keyText.setAttribute('fill', '#ffffff');
+                keyText.setAttribute('font-family', 'monospace');
+                keyText.textContent = `"${key}"`;
+                nodesGroup.appendChild(keyText);
+                
+                // Двоеточие
+                const colon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                colon.setAttribute('x', x + fontSize * (key.length + 2) * 0.6);
+                colon.setAttribute('y', y);
+                colon.setAttribute('font-size', fontSize);
+                colon.setAttribute('fill', '#858585');
+                colon.setAttribute('font-family', 'monospace');
+                colon.textContent = hasChildren ? ': {' : ': {}';
+                nodesGroup.appendChild(colon);
+                
+                y += fontSize * 1.5;
+                
+                // Рекурсивно рендерим дочерние элементы
+                if (hasChildren) {
+                    y = renderJSONStructure(value, x + indentSize, y, level + 1);
+                    
+                    // Закрывающая скобка
+                    const closeBrace = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    closeBrace.setAttribute('x', x);
+                    closeBrace.setAttribute('y', y);
+                    closeBrace.setAttribute('font-size', fontSize);
+                    closeBrace.setAttribute('fill', '#858585');
+                    closeBrace.setAttribute('font-family', 'monospace');
+                    closeBrace.textContent = '}';
+                    nodesGroup.appendChild(closeBrace);
+                    
+                    y += fontSize * 1.2;
+                }
+                
+                // Запятая (если не последний элемент)
+                if (!isLast) {
+                    const comma = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    comma.setAttribute('x', x - 10);
+                    comma.setAttribute('y', y - fontSize * 0.3);
+                    comma.setAttribute('font-size', fontSize);
+                    comma.setAttribute('fill', '#858585');
+                    comma.setAttribute('font-family', 'monospace');
+                    comma.textContent = ',';
+                    nodesGroup.appendChild(comma);
+                }
+            });
+            
+            return y;
+        }
+        
+        // Рендеринг JSON дерева текстом
+        function renderNodes() {
+            if (!nodesGroup) {
+                console.warn('nodesGroup not found');
+                return;
+            }
+            
+            nodesGroup.innerHTML = '';
+            
+            if (!projectData) {
+                console.warn('Project data not loaded');
+                return;
+            }
+            
+            console.log('🌳 Rendering project data:', projectData);
+            
+            let yPos = 50;
+            const startX = 50;
+            
+            // Просто рендерим всю структуру рекурсивно
+            const finalY = renderJSONStructure(projectData, startX, yPos, 0);
+            
+            // Обновляем размер SVG
+            updateSVGSize(finalY);
+        }
+        
+        // Устаревшие функции (оставляем для совместимости, но не используем)
+        function renderJSONNode(nodeId, x, y, level, parentData = null) {
+                console.log('🎨 Rendering node:', nodeId, 'at', x, y);
+                const nodeInfo = getNodeInfo(nodeId);
+                const treeNode = tree[nodeId];
+                if (!treeNode) {
+                    console.warn('TreeNode not found:', nodeId);
+                    return y;
+                }
+                
+                // Подсчитываем количество потомков для размера шрифта
+                const descendantsCount = countAllDescendants(nodeId, tree);
+                const fontSize = Math.min(baseFontSize + descendantsCount * 1.2, maxFontSize);
+                
+                // Получаем имя и тип
+                let displayName = nodeInfo.name || nodeId;
+                let displayType = nodeInfo.type || 'node';
+                
+                // Вычисляем ширину текста для фона
+                const keyTextWidth = fontSize * (displayName.length + 2) * 0.6;
+                const keyTextHeight = fontSize * 1.2;
+                const padding = 4;
+                
+                // Создаем полупрозрачный фон для ключа
+                const keyBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                keyBg.setAttribute('x', x - padding);
+                keyBg.setAttribute('y', y - fontSize * 0.85);
+                keyBg.setAttribute('width', keyTextWidth + padding * 2);
+                keyBg.setAttribute('height', keyTextHeight);
+                keyBg.setAttribute('rx', '4');
+                keyBg.setAttribute('ry', '4');
+                keyBg.setAttribute('fill', '#ffffff');
+                keyBg.setAttribute('fill-opacity', '0.15');
+                nodesGroup.appendChild(keyBg);
+                
+                // Рисуем ключ (имя ноды) - размер зависит от количества потомков
+                const keyText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                keyText.setAttribute('x', x);
+                keyText.setAttribute('y', y);
+                keyText.setAttribute('font-size', fontSize);
+                keyText.setAttribute('font-weight', 'bold');
+                keyText.setAttribute('fill', '#ffffff');
+                keyText.setAttribute('font-family', 'monospace');
+                keyText.textContent = `"${displayName}"`;
+                nodesGroup.appendChild(keyText);
+                
+                // Если есть дочерние элементы, рисуем двоеточие и открывающую скобку
+                // Для нод с ui.structure не учитываем UI subCards (они уже в ui.structure)
+                const hasUIStructure = nodeInfo.ui && nodeInfo.ui.structure;
+                const uiSubCardPrefix = nodeId + '-ui-';
+                const nonUISubCards = hasUIStructure 
+                    ? (treeNode.subCards || []).filter(subCardId => !subCardId.startsWith(uiSubCardPrefix))
+                    : (treeNode.subCards || []);
+                const hasChildren = (treeNode.children && treeNode.children.length > 0) || 
+                                   (nonUISubCards && nonUISubCards.length > 0) ||
+                                   (hasUIStructure && Object.keys(nodeInfo.ui.structure).length > 0);
+                
+                if (hasChildren) {
+                    const colon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    colon.setAttribute('x', x + fontSize * (displayName.length + 2) * 0.6);
+                    colon.setAttribute('y', y);
+                    colon.setAttribute('font-size', fontSize);
+                    colon.setAttribute('fill', '#858585');
+                    colon.setAttribute('font-family', 'monospace');
+                    colon.textContent = ': {';
+                    nodesGroup.appendChild(colon);
+                    
+                    y += fontSize * 1.5;
+                    
+                    // Рисуем children с деталями
+                    if (treeNode.children && treeNode.children.length > 0) {
+                        treeNode.children.forEach((childId, idx) => {
+                            y = renderJSONNode(childId, x + indentSize, y, level + 1, nodeInfo);
+                            
+                            // Добавляем детали для основных нод (UI, functions, atoms)
+                            const childInfo = getNodeInfo(childId);
+                            
+                            // Для screens - показываем UI структуру (но только если она еще не была показана выше для самой ноды)
+                            // UI структура уже отображается в renderJSONNode для самой ноды, поэтому здесь не дублируем
+                            if (false && childInfo.ui && childInfo.ui.structure) {
+                                // Иконка для ui
+                                const uiIcon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                uiIcon.setAttribute('x', x + indentSize * 2);
+                                uiIcon.setAttribute('y', y);
+                                uiIcon.setAttribute('font-size', fontSize * 0.7);
+                                uiIcon.setAttribute('font-family', 'monospace');
+                                uiIcon.textContent = '🎨';
+                                nodesGroup.appendChild(uiIcon);
+                                
+                                // Вычисляем размеры для фона ui
+                                const uiKeyWidth = fontSize * 0.7 * 4 * 0.5;
+                                const uiKeyHeight = fontSize * 0.7 * 1.2;
+                                const uiKeyPadding = 2;
+                                
+                                // Создаем полупрозрачный фон для ui
+                                const uiKeyBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                                uiKeyBg.setAttribute('x', x + indentSize * 2 + fontSize * 1.0 - uiKeyPadding);
+                                uiKeyBg.setAttribute('y', y - fontSize * 0.7 * 0.85);
+                                uiKeyBg.setAttribute('width', uiKeyWidth + uiKeyPadding * 2);
+                                uiKeyBg.setAttribute('height', uiKeyHeight);
+                                uiKeyBg.setAttribute('rx', '3');
+                                uiKeyBg.setAttribute('ry', '3');
+                                uiKeyBg.setAttribute('fill', '#9cdcfe');
+                                uiKeyBg.setAttribute('fill-opacity', '0.15');
+                                nodesGroup.appendChild(uiKeyBg);
+                                
+                                const uiKey = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                uiKey.setAttribute('x', x + indentSize * 2 + fontSize * 1.0);
+                                uiKey.setAttribute('y', y);
+                                uiKey.setAttribute('font-size', fontSize * 0.7);
+                                uiKey.setAttribute('fill', '#9cdcfe');
+                                uiKey.setAttribute('font-family', 'monospace');
+                                uiKey.textContent = '"ui"';
+                                nodesGroup.appendChild(uiKey);
+                                
+                                const uiColon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                uiColon.setAttribute('x', x + indentSize * 2 + fontSize * 1.0 + uiKeyWidth);
+                                uiColon.setAttribute('y', y);
+                                uiColon.setAttribute('font-size', fontSize * 0.7);
+                                uiColon.setAttribute('fill', '#858585');
+                                uiColon.setAttribute('font-family', 'monospace');
+                                uiColon.textContent = ': {';
+                                nodesGroup.appendChild(uiColon);
+                                
+                                y += fontSize * 1.0;
+                                
+                                Object.entries(childInfo.ui.structure).forEach(([uiName, uiData], uiIdx) => {
+                                    // Ключ UI компонента
+                                    const uiItemKey = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                    uiItemKey.setAttribute('x', x + indentSize * 3);
+                                    uiItemKey.setAttribute('y', y);
+                                    uiItemKey.setAttribute('font-size', fontSize * 0.65);
+                                    uiItemKey.setAttribute('font-weight', 'bold');
+                                    uiItemKey.setAttribute('fill', '#4ec9b0');
+                                    uiItemKey.setAttribute('font-family', 'monospace');
+                                    uiItemKey.textContent = `"${uiName}"`;
+                                    nodesGroup.appendChild(uiItemKey);
+                                    
+                                    const uiItemColon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                    uiItemColon.setAttribute('x', x + indentSize * 3 + fontSize * (uiName.length + 2) * 0.4);
+                                    uiItemColon.setAttribute('y', y);
+                                    uiItemColon.setAttribute('font-size', fontSize * 0.65);
+                                    uiItemColon.setAttribute('fill', '#858585');
+                                    uiItemColon.setAttribute('font-family', 'monospace');
+                                    uiItemColon.textContent = ': {';
+                                    nodesGroup.appendChild(uiItemColon);
+                                    
+                                    y += fontSize * 0.9;
+                                    
+                                    // Тип компонента
+                                    const uiType = typeof uiData === 'object' ? (uiData.type || 'object') : uiData;
+                                    // Иконка для type
+                                    const typeIcon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                    typeIcon.setAttribute('x', x + indentSize * 4);
+                                    typeIcon.setAttribute('y', y);
+                                    typeIcon.setAttribute('font-size', fontSize * 0.6);
+                                    typeIcon.setAttribute('font-family', 'monospace');
+                                    typeIcon.textContent = '🏷️';
+                                    nodesGroup.appendChild(typeIcon);
+                                    
+                                    const typeKey = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                    typeKey.setAttribute('x', x + indentSize * 4 + fontSize * 1.0);
+                                    typeKey.setAttribute('y', y);
+                                    typeKey.setAttribute('font-size', fontSize * 0.6);
+                                    typeKey.setAttribute('fill', '#9cdcfe');
+                                    typeKey.setAttribute('font-family', 'monospace');
+                                    typeKey.textContent = '"type"';
+                                    nodesGroup.appendChild(typeKey);
+                                    
+                                    const typeColon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                    typeColon.setAttribute('x', x + indentSize * 4 + fontSize * 6 * 0.35);
+                                    typeColon.setAttribute('y', y);
+                                    typeColon.setAttribute('font-size', fontSize * 0.6);
+                                    typeColon.setAttribute('fill', '#858585');
+                                    typeColon.setAttribute('font-family', 'monospace');
+                                    typeColon.textContent = ': ';
+                                    nodesGroup.appendChild(typeColon);
+                                    
+                                    const typeVal = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                    typeVal.setAttribute('x', x + indentSize * 4 + fontSize * 8 * 0.35);
+                                    typeVal.setAttribute('y', y);
+                                    typeVal.setAttribute('font-size', fontSize * 0.6);
+                                    typeVal.setAttribute('fill', '#ce9178');
+                                    typeVal.setAttribute('font-family', 'monospace');
+                                    typeVal.textContent = `"${uiType}"`;
+                                    nodesGroup.appendChild(typeVal);
+                                    y += fontSize * 0.8;
+                                    
+                                    // Используемые стейты для этого UI компонента
+                                    const usedStates = getUsedStatesForUI(uiName, childId, childInfo);
+                                    if (usedStates && usedStates.length > 0) {
+                                        // Иконка для states
+                                        const statesIcon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                        statesIcon.setAttribute('x', x + indentSize * 4);
+                                        statesIcon.setAttribute('y', y);
+                                        statesIcon.setAttribute('font-size', fontSize * 0.6);
+                                        statesIcon.setAttribute('font-family', 'monospace');
+                                        statesIcon.textContent = '💾';
+                                        nodesGroup.appendChild(statesIcon);
+                                        
+                                        const statesKey = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                        statesKey.setAttribute('x', x + indentSize * 4 + fontSize * 1.0);
+                                        statesKey.setAttribute('y', y);
+                                        statesKey.setAttribute('font-size', fontSize * 0.6);
+                                        statesKey.setAttribute('fill', '#9cdcfe');
+                                        statesKey.setAttribute('font-family', 'monospace');
+                                        statesKey.textContent = '"states"';
+                                        nodesGroup.appendChild(statesKey);
+                                        
+                                        const statesColon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                        statesColon.setAttribute('x', x + indentSize * 4 + fontSize * 8 * 0.35);
+                                        statesColon.setAttribute('y', y);
+                                        statesColon.setAttribute('font-size', fontSize * 0.6);
+                                        statesColon.setAttribute('fill', '#858585');
+                                        statesColon.setAttribute('font-family', 'monospace');
+                                        statesColon.textContent = ': [';
+                                        nodesGroup.appendChild(statesColon);
+                                        
+                                        y += fontSize * 0.8;
+                                        
+                                        usedStates.forEach((state, stateIdx) => {
+                                            const stateText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                            stateText.setAttribute('x', x + indentSize * 5);
+                                            stateText.setAttribute('y', y);
+                                            stateText.setAttribute('font-size', fontSize * 0.55);
+                                            stateText.setAttribute('fill', '#c586c0');
+                                            stateText.setAttribute('font-family', 'monospace');
+                                            stateText.textContent = `"${state}"`;
+                                            nodesGroup.appendChild(stateText);
+                                            
+                                            if (stateIdx < usedStates.length - 1) {
+                                                const stateComma = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                                stateComma.setAttribute('x', x + indentSize * 5 - 8);
+                                                stateComma.setAttribute('y', y);
+                                                stateComma.setAttribute('font-size', fontSize * 0.55);
+                                                stateComma.setAttribute('fill', '#858585');
+                                                stateComma.setAttribute('font-family', 'monospace');
+                                                stateComma.textContent = ',';
+                                                nodesGroup.appendChild(stateComma);
+                                            }
+                                            
+                                            y += fontSize * 0.7;
+                                        });
+                                        
+                                        const statesClose = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                        statesClose.setAttribute('x', x + indentSize * 4);
+                                        statesClose.setAttribute('y', y);
+                                        statesClose.setAttribute('font-size', fontSize * 0.6);
+                                        statesClose.setAttribute('fill', '#858585');
+                                        statesClose.setAttribute('font-family', 'monospace');
+                                        statesClose.textContent = ']';
+                                        nodesGroup.appendChild(statesClose);
+                                        y += fontSize * 0.8;
+                                    }
+                                    
+                                    // Вызываемые экшены (API и Bluetooth)
+                                    const usedActions = getUsedActionsForUI(uiName, childId, childInfo);
+                                    if (usedActions && usedActions.length > 0) {
+                                        // Иконка для actions
+                                        const actionsIcon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                        actionsIcon.setAttribute('x', x + indentSize * 4);
+                                        actionsIcon.setAttribute('y', y);
+                                        actionsIcon.setAttribute('font-size', fontSize * 0.6);
+                                        actionsIcon.setAttribute('font-family', 'monospace');
+                                        actionsIcon.textContent = '⚡';
+                                        nodesGroup.appendChild(actionsIcon);
+                                        
+                                        // Вычисляем размеры для фона actions
+                                        const actionsKeyWidth = fontSize * 0.6 * 9 * 0.35;
+                                        const actionsKeyHeight = fontSize * 0.6 * 1.2;
+                                        const actionsKeyPadding = 2;
+                                        
+                                        // Создаем полупрозрачный фон для actions
+                                        const actionsKeyBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                                        actionsKeyBg.setAttribute('x', x + indentSize * 4 + fontSize * 1.0 - actionsKeyPadding);
+                                        actionsKeyBg.setAttribute('y', y - fontSize * 0.6 * 0.85);
+                                        actionsKeyBg.setAttribute('width', actionsKeyWidth + actionsKeyPadding * 2);
+                                        actionsKeyBg.setAttribute('height', actionsKeyHeight);
+                                        actionsKeyBg.setAttribute('rx', '3');
+                                        actionsKeyBg.setAttribute('ry', '3');
+                                        actionsKeyBg.setAttribute('fill', '#9cdcfe');
+                                        actionsKeyBg.setAttribute('fill-opacity', '0.15');
+                                        nodesGroup.appendChild(actionsKeyBg);
+                                        
+                                        const actionsKey = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                        actionsKey.setAttribute('x', x + indentSize * 4 + fontSize * 1.0);
+                                        actionsKey.setAttribute('y', y);
+                                        actionsKey.setAttribute('font-size', fontSize * 0.6);
+                                        actionsKey.setAttribute('fill', '#9cdcfe');
+                                        actionsKey.setAttribute('font-family', 'monospace');
+                                        actionsKey.textContent = '"actions"';
+                                        nodesGroup.appendChild(actionsKey);
+                                        
+                                        const actionsColon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                        actionsColon.setAttribute('x', x + indentSize * 4 + fontSize * 1.0 + actionsKeyWidth);
+                                        actionsColon.setAttribute('y', y);
+                                        actionsColon.setAttribute('font-size', fontSize * 0.6);
+                                        actionsColon.setAttribute('fill', '#858585');
+                                        actionsColon.setAttribute('font-family', 'monospace');
+                                        actionsColon.textContent = ': [';
+                                        nodesGroup.appendChild(actionsColon);
+                                        
+                                        y += fontSize * 0.8;
+                                        
+                                        usedActions.forEach((action, actionIdx) => {
+                                            const actionText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                            actionText.setAttribute('x', x + indentSize * 5);
+                                            actionText.setAttribute('y', y);
+                                            actionText.setAttribute('font-size', fontSize * 0.55);
+                                            actionText.setAttribute('fill', '#dcdcaa');
+                                            actionText.setAttribute('font-family', 'monospace');
+                                            actionText.textContent = `"${action}"`;
+                                            nodesGroup.appendChild(actionText);
+                                            
+                                            if (actionIdx < usedActions.length - 1) {
+                                                const actionComma = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                                actionComma.setAttribute('x', x + indentSize * 5 - 8);
+                                                actionComma.setAttribute('y', y);
+                                                actionComma.setAttribute('font-size', fontSize * 0.55);
+                                                actionComma.setAttribute('fill', '#858585');
+                                                actionComma.setAttribute('font-family', 'monospace');
+                                                actionComma.textContent = ',';
+                                                nodesGroup.appendChild(actionComma);
+                                            }
+                                            
+                                            y += fontSize * 0.7;
+                                        });
+                                        
+                                        const actionsClose = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                        actionsClose.setAttribute('x', x + indentSize * 4);
+                                        actionsClose.setAttribute('y', y);
+                                        actionsClose.setAttribute('font-size', fontSize * 0.6);
+                                        actionsClose.setAttribute('fill', '#858585');
+                                        actionsClose.setAttribute('font-family', 'monospace');
+                                        actionsClose.textContent = ']';
+                                        nodesGroup.appendChild(actionsClose);
+                                        y += fontSize * 0.8;
+                                    }
+                                    
+                                    // Закрывающая скобка для UI компонента
+                                    const uiItemClose = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                    uiItemClose.setAttribute('x', x + indentSize * 3);
+                                    uiItemClose.setAttribute('y', y);
+                                    uiItemClose.setAttribute('font-size', fontSize * 0.65);
+                                    uiItemClose.setAttribute('fill', '#858585');
+                                    uiItemClose.setAttribute('font-family', 'monospace');
+                                    uiItemClose.textContent = '}';
+                                    nodesGroup.appendChild(uiItemClose);
+                                    
+                                    if (uiIdx < Object.keys(childInfo.ui.structure).length - 1) {
+                                        const uiComma = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                        uiComma.setAttribute('x', x + indentSize * 3 - 10);
+                                        uiComma.setAttribute('y', y);
+                                        uiComma.setAttribute('font-size', fontSize * 0.65);
+                                        uiComma.setAttribute('fill', '#858585');
+                                        uiComma.setAttribute('font-family', 'monospace');
+                                        uiComma.textContent = ',';
+                                        nodesGroup.appendChild(uiComma);
+                                    }
+                                    
+                                    y += fontSize * 0.9;
+                                });
+                                
+                                const uiClose = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                uiClose.setAttribute('x', x + indentSize * 2);
+                                uiClose.setAttribute('y', y);
+                                uiClose.setAttribute('font-size', fontSize * 0.7);
+                                uiClose.setAttribute('fill', '#858585');
+                                uiClose.setAttribute('font-family', 'monospace');
+                                uiClose.textContent = '}';
+                                nodesGroup.appendChild(uiClose);
+                                y += fontSize * 1.0;
+                            }
+                            
+                            // Functions уже показываются в subCards, поэтому здесь не дублируем
+                            
+                            // Проверяем, есть ли еще children или nonUISubCards после этого child
+                            const hasMoreChildren = idx < treeNode.children.length - 1;
+                            const hasNonUISubCards = nonUISubCards && nonUISubCards.length > 0;
+                            const hasUIStructure = childInfo.ui && childInfo.ui.structure;
+                            
+                            if (hasMoreChildren || hasNonUISubCards || hasUIStructure) {
+                                const comma = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                comma.setAttribute('x', x + indentSize - 15);
+                                comma.setAttribute('y', y - fontSize * 0.3);
+                                comma.setAttribute('font-size', fontSize * 0.7);
+                                comma.setAttribute('fill', '#858585');
+                                comma.setAttribute('font-family', 'monospace');
+                                comma.textContent = ',';
+                                nodesGroup.appendChild(comma);
+                            }
+                        });
+                    }
+                    
+                    // Рисуем subCards с деталями
+                    // НО: если у ноды есть ui.structure, то не рисуем UI subCards (они уже нарисованы в ui.structure)
+                    const hasUIStructure = nodeInfo.ui && nodeInfo.ui.structure;
+                    const uiSubCardPrefix = nodeId + '-ui-';
+                    const nonUISubCards = hasUIStructure 
+                        ? treeNode.subCards.filter(subCardId => !subCardId.startsWith(uiSubCardPrefix))
+                        : (treeNode.subCards || []);
+                    
+                if (nonUISubCards && nonUISubCards.length > 0) {
+                    nonUISubCards.forEach((subCardId, idx) => {
+                        const subCardInfo = getSubCardInfo(subCardId, nodeId, treeNode);
+                        if (subCardInfo) {
+                            // Размер шрифта для подкарточки - используем пропорциональный размер от родителя
+                            const subFontSize = Math.max(baseFontSize * 0.7, fontSize * 0.65);
+                            
+                            // Иконка для подкарточки
+                            const iconMap = {
+                                'atom': '💾',
+                                'function': '⚡',
+                                'ui-component': '🎨'
+                            };
+                            const icon = iconMap[subCardInfo.type] || '';
+                            
+                            const iconOffset = icon ? subFontSize * 1.2 : 0;
+                            
+                            if (icon) {
+                                const iconText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                iconText.setAttribute('x', x + indentSize);
+                                iconText.setAttribute('y', y);
+                                iconText.setAttribute('font-size', subFontSize);
+                                iconText.setAttribute('font-family', 'monospace');
+                                iconText.textContent = icon;
+                                nodesGroup.appendChild(iconText);
+                            }
+                            
+                            // Используем общую функцию для создания фона
+                            const subKeyBg = createKeyBackground(
+                                x + indentSize, 
+                                y, 
+                                subCardInfo.name, 
+                                subFontSize, 
+                                keyColors.main, 
+                                iconOffset
+                            );
+                            nodesGroup.appendChild(subKeyBg);
+                            
+                            // Ключ подкарточки (стиль как в основном JSON)
+                            const subCardKey = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                            subCardKey.setAttribute('x', x + indentSize + iconOffset);
+                            subCardKey.setAttribute('y', y);
+                            subCardKey.setAttribute('font-size', subFontSize);
+                            subCardKey.setAttribute('font-weight', 'bold');
+                            subCardKey.setAttribute('fill', keyColors.main);
+                            subCardKey.setAttribute('font-family', 'monospace');
+                            subCardKey.textContent = `"${subCardInfo.name}"`;
+                            nodesGroup.appendChild(subCardKey);
+                            
+                            // Двоеточие
+                            const subColon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                            subColon.setAttribute('x', x + indentSize + subFontSize * (subCardInfo.name.length + 2) * 0.6);
+                            subColon.setAttribute('y', y);
+                            subColon.setAttribute('font-size', subFontSize);
+                            subColon.setAttribute('fill', '#858585');
+                            subColon.setAttribute('font-family', 'monospace');
+                            subColon.textContent = ': {';
+                            nodesGroup.appendChild(subColon);
+                            
+                            y += subFontSize * 1.3;
+                            
+                            // Детали для atom
+                            if (subCardInfo.type === 'atom' && subCardInfo.structure) {
+                                const structFontSize = subFontSize * 0.85; // Определяем размер шрифта для структуры
+                                
+                                Object.entries(subCardInfo.structure).forEach(([key, val], structIdx) => {
+                                    // Иконка для поля структуры
+                                    const fieldIcon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                    fieldIcon.setAttribute('x', x + indentSize * 2);
+                                    fieldIcon.setAttribute('y', y);
+                                    fieldIcon.setAttribute('font-size', structFontSize);
+                                    fieldIcon.setAttribute('font-family', 'monospace');
+                                    fieldIcon.textContent = '📋';
+                                    nodesGroup.appendChild(fieldIcon);
+                                    
+                                    // Используем общую функцию для создания фона ключ: значение
+                                    const structBg = createKeyValueBackground(
+                                        x + indentSize * 2 + subFontSize * 1.2,
+                                        y,
+                                        key,
+                                        String(val),
+                                        structFontSize,
+                                        keyColors.nested,
+                                        0
+                                    );
+                                    nodesGroup.appendChild(structBg);
+                                    
+                                    const structKey = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                    structKey.setAttribute('x', x + indentSize * 2 + subFontSize * 1.2);
+                                    structKey.setAttribute('y', y);
+                                    structKey.setAttribute('font-size', structFontSize);
+                                    structKey.setAttribute('fill', keyColors.nested);
+                                    structKey.setAttribute('font-family', 'monospace');
+                                    structKey.textContent = `"${key}"`;
+                                    nodesGroup.appendChild(structKey);
+                                    
+                                    const structKeyWidth = structFontSize * (key.length + 2) * 0.6;
+                                    const structColon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                    structColon.setAttribute('x', x + indentSize * 2 + subFontSize * 1.2 + structKeyWidth);
+                                    structColon.setAttribute('y', y);
+                                    structColon.setAttribute('font-size', structFontSize);
+                                    structColon.setAttribute('fill', '#858585');
+                                    structColon.setAttribute('font-family', 'monospace');
+                                    structColon.textContent = ': ';
+                                    nodesGroup.appendChild(structColon);
+                                    
+                                    const structVal = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                    structVal.setAttribute('x', x + indentSize * 2 + subFontSize * 1.2 + structKeyWidth + structFontSize * 2);
+                                    structVal.setAttribute('y', y);
+                                    structVal.setAttribute('font-size', structFontSize);
+                                    structVal.setAttribute('fill', keyColors.value);
+                                    structVal.setAttribute('font-family', 'monospace');
+                                    structVal.textContent = `"${val}"`;
+                                    nodesGroup.appendChild(structVal);
+                                    
+                                    if (structIdx < Object.keys(subCardInfo.structure).length - 1) {
+                                        const structComma = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                        structComma.setAttribute('x', x + indentSize * 2 - 10);
+                                        structComma.setAttribute('y', y);
+                                        structComma.setAttribute('font-size', structFontSize);
+                                        structComma.setAttribute('fill', '#858585');
+                                        structComma.setAttribute('font-family', 'monospace');
+                                        structComma.textContent = ',';
+                                        nodesGroup.appendChild(structComma);
+                                    }
+                                    
+                                    y += structFontSize * 1.2;
+                                });
+                            }
+                            
+                            // Детали для function
+                            if (subCardInfo.type === 'function') {
+                                if (subCardInfo.description) {
+                                    // Иконка для description
+                                    const descIcon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                    descIcon.setAttribute('x', x + indentSize * 2);
+                                    descIcon.setAttribute('y', y);
+                                    descIcon.setAttribute('font-size', subFontSize * 0.8);
+                                    descIcon.setAttribute('font-family', 'monospace');
+                                    descIcon.textContent = '📝';
+                                    nodesGroup.appendChild(descIcon);
+                                    
+                                    const descFontSize = subFontSize * 0.85;
+                                    const shortDesc = subCardInfo.description.length > 30 ? subCardInfo.description.substring(0, 27) + '...' : subCardInfo.description;
+                                    
+                                    // Используем общую функцию для создания фона
+                                    const descBg = createKeyValueBackground(
+                                        x + indentSize * 2 + subFontSize * 1.2,
+                                        y,
+                                        'description',
+                                        shortDesc,
+                                        descFontSize,
+                                        keyColors.nested,
+                                        0
+                                    );
+                                    nodesGroup.appendChild(descBg);
+                                    
+                                    const descKey = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                    descKey.setAttribute('x', x + indentSize * 2 + subFontSize * 1.2);
+                                    descKey.setAttribute('y', y);
+                                    descKey.setAttribute('font-size', descFontSize);
+                                    descKey.setAttribute('fill', keyColors.nested);
+                                    descKey.setAttribute('font-family', 'monospace');
+                                    descKey.textContent = '"description"';
+                                    nodesGroup.appendChild(descKey);
+                                    
+                                    const descKeyWidth = descFontSize * 13 * 0.6;
+                                    const descColon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                    descColon.setAttribute('x', x + indentSize * 2 + subFontSize * 1.2 + descKeyWidth);
+                                    descColon.setAttribute('y', y);
+                                    descColon.setAttribute('font-size', descFontSize);
+                                    descColon.setAttribute('fill', '#858585');
+                                    descColon.setAttribute('font-family', 'monospace');
+                                    descColon.textContent = ': ';
+                                    nodesGroup.appendChild(descColon);
+                                    
+                                    const descVal = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                    descVal.setAttribute('x', x + indentSize * 2 + subFontSize * 1.2 + descKeyWidth + descFontSize * 2);
+                                    descVal.setAttribute('y', y);
+                                    descVal.setAttribute('font-size', descFontSize);
+                                    descVal.setAttribute('fill', keyColors.value);
+                                    descVal.setAttribute('font-family', 'monospace');
+                                    descVal.textContent = `"${shortDesc}"`;
+                                    nodesGroup.appendChild(descVal);
+                                    y += descFontSize * 1.2;
+                                }
+                                
+                                if (subCardInfo.calls && subCardInfo.calls.length > 0) {
+                                    // Иконка для calls
+                                    const callsIcon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                    callsIcon.setAttribute('x', x + indentSize * 2);
+                                    callsIcon.setAttribute('y', y);
+                                    callsIcon.setAttribute('font-size', subFontSize * 0.8);
+                                    callsIcon.setAttribute('font-family', 'monospace');
+                                    callsIcon.textContent = '🔗';
+                                    nodesGroup.appendChild(callsIcon);
+                                    
+                                    const callsFontSize = subFontSize * 0.85;
+                                    
+                                    // Используем общую функцию для создания фона
+                                    const callsKeyBg = createKeyBackground(
+                                        x + indentSize * 2 + subFontSize * 1.2,
+                                        y,
+                                        'calls',
+                                        callsFontSize,
+                                        keyColors.nested,
+                                        0
+                                    );
+                                    nodesGroup.appendChild(callsKeyBg);
+                                    
+                                    const callsKey = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                    callsKey.setAttribute('x', x + indentSize * 2 + subFontSize * 1.2);
+                                    callsKey.setAttribute('y', y);
+                                    callsKey.setAttribute('font-size', callsFontSize);
+                                    callsKey.setAttribute('fill', keyColors.nested);
+                                    callsKey.setAttribute('font-family', 'monospace');
+                                    callsKey.textContent = '"calls"';
+                                    nodesGroup.appendChild(callsKey);
+                                    
+                                    const callsKeyWidth = callsFontSize * 7 * 0.6;
+                                    const callsColon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                    callsColon.setAttribute('x', x + indentSize * 2 + subFontSize * 1.2 + callsKeyWidth);
+                                    callsColon.setAttribute('y', y);
+                                    callsColon.setAttribute('font-size', callsFontSize);
+                                    callsColon.setAttribute('fill', '#858585');
+                                    callsColon.setAttribute('font-family', 'monospace');
+                                    callsColon.textContent = ': [';
+                                    nodesGroup.appendChild(callsColon);
+                                    
+                                    y += subFontSize * 1.1;
+                                    
+                                    subCardInfo.calls.forEach((call, callIdx) => {
+                                        const callText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                        callText.setAttribute('x', x + indentSize * 3);
+                                        callText.setAttribute('y', y);
+                                        callText.setAttribute('font-size', subFontSize * 0.7);
+                                        callText.setAttribute('fill', '#dcdcaa');
+                                        callText.setAttribute('font-family', 'monospace');
+                                        callText.textContent = `"${call.target}"`;
+                                        nodesGroup.appendChild(callText);
+                                        
+                                        if (callIdx < subCardInfo.calls.length - 1) {
+                                            const callComma = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                            callComma.setAttribute('x', x + indentSize * 3 - 10);
+                                            callComma.setAttribute('y', y);
+                                            callComma.setAttribute('font-size', subFontSize * 0.7);
+                                            callComma.setAttribute('fill', '#858585');
+                                            callComma.setAttribute('font-family', 'monospace');
+                                            callComma.textContent = ',';
+                                            nodesGroup.appendChild(callComma);
+                                        }
+                                        
+                                        y += subFontSize * 1.0;
+                                    });
+                                    
+                                    const callsClose = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                    callsClose.setAttribute('x', x + indentSize * 2);
+                                    callsClose.setAttribute('y', y);
+                                    callsClose.setAttribute('font-size', subFontSize * 0.8);
+                                    callsClose.setAttribute('fill', '#858585');
+                                    callsClose.setAttribute('font-family', 'monospace');
+                                    callsClose.textContent = ']';
+                                    nodesGroup.appendChild(callsClose);
+                                    y += subFontSize * 1.1;
+                                }
+                            }
+                            
+                            // Детали для ui-component
+                            if (subCardInfo.type === 'ui-component' && subCardInfo.uiType) {
+                                // Иконка для type
+                                const typeIcon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                typeIcon.setAttribute('x', x + indentSize * 2);
+                                typeIcon.setAttribute('y', y);
+                                typeIcon.setAttribute('font-size', subFontSize * 0.8);
+                                typeIcon.setAttribute('font-family', 'monospace');
+                                typeIcon.textContent = '🏷️';
+                                nodesGroup.appendChild(typeIcon);
+                                
+                                const uiTypeFontSize = subFontSize * 0.85;
+                                
+                                // Используем общую функцию для создания фона
+                                const uiTypeBg = createKeyValueBackground(
+                                    x + indentSize * 2,
+                                    y,
+                                    'type',
+                                    subCardInfo.uiType,
+                                    uiTypeFontSize,
+                                    keyColors.nested,
+                                    0
+                                );
+                                nodesGroup.appendChild(uiTypeBg);
+                                
+                                const uiTypeKey = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                uiTypeKey.setAttribute('x', x + indentSize * 2);
+                                uiTypeKey.setAttribute('y', y);
+                                uiTypeKey.setAttribute('font-size', uiTypeFontSize);
+                                uiTypeKey.setAttribute('fill', keyColors.nested);
+                                uiTypeKey.setAttribute('font-family', 'monospace');
+                                uiTypeKey.textContent = '"type"';
+                                nodesGroup.appendChild(uiTypeKey);
+                                
+                                const uiTypeKeyWidth = uiTypeFontSize * 6 * 0.6;
+                                const uiTypeColon = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                uiTypeColon.setAttribute('x', x + indentSize * 2 + uiTypeKeyWidth);
+                                uiTypeColon.setAttribute('y', y);
+                                uiTypeColon.setAttribute('font-size', uiTypeFontSize);
+                                uiTypeColon.setAttribute('fill', '#858585');
+                                uiTypeColon.setAttribute('font-family', 'monospace');
+                                uiTypeColon.textContent = ': ';
+                                nodesGroup.appendChild(uiTypeColon);
+                                
+                                const uiTypeVal = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                uiTypeVal.setAttribute('x', x + indentSize * 2 + uiTypeKeyWidth + uiTypeFontSize * 2);
+                                uiTypeVal.setAttribute('y', y);
+                                uiTypeVal.setAttribute('font-size', uiTypeFontSize);
+                                uiTypeVal.setAttribute('fill', keyColors.value);
+                                uiTypeVal.setAttribute('font-family', 'monospace');
+                                uiTypeVal.textContent = `"${subCardInfo.uiType}"`;
+                                nodesGroup.appendChild(uiTypeVal);
+                                y += uiTypeFontSize * 1.2;
+                            }
+                            
+                            // Закрывающая скобка для подкарточки
+                            const subCloseBrace = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                            subCloseBrace.setAttribute('x', x + indentSize);
+                            subCloseBrace.setAttribute('y', y);
+                            subCloseBrace.setAttribute('font-size', subFontSize);
+                            subCloseBrace.setAttribute('fill', '#858585');
+                            subCloseBrace.setAttribute('font-family', 'monospace');
+                            subCloseBrace.textContent = '}';
+                            nodesGroup.appendChild(subCloseBrace);
+                            y += subFontSize * 1.3;
+                            
+                            if (idx < nonUISubCards.length - 1) {
+                                const comma = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                                comma.setAttribute('x', x + indentSize - 15);
+                                comma.setAttribute('y', y - subFontSize * 0.3);
+                                comma.setAttribute('font-size', subFontSize);
+                                comma.setAttribute('fill', '#858585');
+                                comma.setAttribute('font-family', 'monospace');
+                                comma.textContent = ',';
+                                nodesGroup.appendChild(comma);
+                            }
+                        }
+                    });
+                }
+                    
+                    // Закрывающая скобка
+                    const closeBrace = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    closeBrace.setAttribute('x', x);
+                    closeBrace.setAttribute('y', y);
+                    closeBrace.setAttribute('font-size', fontSize);
+                    closeBrace.setAttribute('fill', '#858585');
+                    closeBrace.setAttribute('font-family', 'monospace');
+                    closeBrace.textContent = '}';
+                    nodesGroup.appendChild(closeBrace);
+                } else {
+                    // Лист - просто значение
+                    const value = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    value.setAttribute('x', x + fontSize * (displayName.length + 2) * 0.6 + 10);
+                    value.setAttribute('y', y);
+                    value.setAttribute('font-size', fontSize * 0.7);
+                    value.setAttribute('fill', '#6a9955');
+                    value.setAttribute('font-family', 'monospace');
+                    value.textContent = `"${displayType}"`;
+                    nodesGroup.appendChild(value);
+                }
+                
+                return y + fontSize * 1.3;
+            }
+            
+            // Просто рендерим всю структуру рекурсивно
+            console.log('🚀 Starting render');
+            const finalY = renderJSONStructure(projectData, startX, yPos, 0);
+            console.log('✅ Render complete, final Y:', finalY);
+            
+            // Обновляем размер SVG чтобы вместить весь контент
+            updateSVGSize(finalY);
+        }
+        
+        function updateSVGSize(maxY) {
+            const svg = document.getElementById('mapSvg');
+            if (!svg) return;
+            
+            // Получаем текущие границы всех элементов
+            const nodesGroup = document.getElementById('nodes');
+            if (!nodesGroup) {
+                // Если нет nodesGroup, используем maxY
+                const padding = 150;
+                const svgWidth = Math.max(window.innerWidth || 2000, 2000);
+                const svgHeight = Math.max(window.innerHeight || 2000, maxY + padding);
+                svg.setAttribute('width', svgWidth);
+                svg.setAttribute('height', svgHeight);
+                svg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
+                return;
+            }
+            
+            // Находим максимальные координаты всех элементов
+            let maxX = 0;
+            let maxYCoord = 0;
+            
+            // Проходим по всем элементам в nodesGroup (text, rect)
+            const allElements = nodesGroup.querySelectorAll('text, rect');
+            allElements.forEach(el => {
+                const x = parseFloat(el.getAttribute('x')) || 0;
+                const y = parseFloat(el.getAttribute('y')) || 0;
+                const fontSize = parseFloat(el.getAttribute('font-size')) || 14;
+                const width = parseFloat(el.getAttribute('width')) || 0;
+                const height = parseFloat(el.getAttribute('height')) || 0;
+                const textLength = (el.textContent || '').length;
+                
+                // Для текста учитываем длину текста
+                if (el.tagName === 'text') {
+                    maxX = Math.max(maxX, x + textLength * fontSize * 0.6);
+                    maxYCoord = Math.max(maxYCoord, y + fontSize);
+                } else if (el.tagName === 'rect') {
+                    // Для прямоугольников учитываем ширину и высоту
+                    maxX = Math.max(maxX, x + width);
+                    maxYCoord = Math.max(maxYCoord, y + height);
+                }
+            });
+            
+            // Используем максимальное значение из maxY (возвращенное из renderJSONNode) и вычисленного maxYCoord
+            const finalMaxY = Math.max(maxY || 0, maxYCoord);
+            
+            // Добавляем отступы
+            const padding = 150;
+            const svgWidth = Math.max(window.innerWidth || 2000, maxX + padding, 2000);
+            const svgHeight = Math.max(window.innerHeight || 2000, finalMaxY + padding);
+            
+            // Устанавливаем размеры SVG
+            svg.setAttribute('width', svgWidth);
+            svg.setAttribute('height', svgHeight);
+            svg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`);
+            
+            console.log('📐 SVG size updated:', svgWidth, 'x', svgHeight, 'maxY:', finalMaxY, 'maxX:', maxX);
+        }
+
+        function showPreview(node) {
+            hoveredNode = node;
+            previewPanel.classList.add('visible');
+            
+            document.getElementById('previewIcon').textContent = node.icon;
+            document.getElementById('previewTitle').textContent = node.name;
+            document.getElementById('previewPath').textContent = node.path;
+            
+            const functionsDiv = document.getElementById('previewFunctions');
+            functionsDiv.innerHTML = '';
+            
+            if (node.ui && node.ui.structure) {
+                const uiDiv = document.createElement('div');
+                uiDiv.className = 'preview-function';
+                uiDiv.innerHTML = '<div class="preview-function-name">🎨 UI Structure</div>';
+                Object.entries(node.ui.structure).forEach(([key, value]) => {
+                    const item = document.createElement('div');
+                    item.className = 'preview-function-desc';
+                    item.textContent = `${key}: ${value.type}`;
+                    uiDiv.appendChild(item);
+                });
+                functionsDiv.appendChild(uiDiv);
+            }
+            
+            if (node.atoms) {
+                node.atoms.forEach(atom => {
+                    const atomDiv = document.createElement('div');
+                    atomDiv.className = 'preview-function';
+                    atomDiv.style.borderLeftColor = '#c586c0';
+                    atomDiv.innerHTML = `
+                        <div class="preview-function-name">💾 ${atom.name}</div>
+                        <div class="preview-function-desc">${JSON.stringify(atom.structure, null, 2)}</div>
+                    `;
+                    functionsDiv.appendChild(atomDiv);
+                });
+            }
+            
+            if (node.functions) {
+                node.functions.forEach(func => {
+                    const funcDiv = document.createElement('div');
+                    funcDiv.className = 'preview-function';
+                    funcDiv.innerHTML = `
+                        <div class="preview-function-name">⚡ ${func.name}()</div>
+                        <div class="preview-function-desc">${func.description || ''}</div>
+                    `;
+                    functionsDiv.appendChild(funcDiv);
+                });
+            }
+        }
+
+        function hidePreview() {
+            if (!draggedNode) {
+                previewPanel.classList.remove('visible');
+                hoveredNode = null;
+            }
+        }
+
+        // Простое управление картой
+        const canvas = document.getElementById('mapCanvas');
+        let isPanning = false;
+        let isDraggingNode = false;
+        let panStart = { x: 0, y: 0 };
+        let mouseStart = { x: 0, y: 0 };
+
+        // Получение координат в системе координат карты
+        function getSVGPoint(clientX, clientY) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: (clientX - rect.left - translateX) / scale,
+                y: (clientY - rect.top - translateY) / scale
+            };
+        }
+
+        // Зум относительно точки курсора (правильный расчет)
+        function zoomToPoint(clientX, clientY, zoomFactor) {
+            const rect = canvas.getBoundingClientRect();
+            
+            // Координаты курсора относительно canvas (viewport)
+            const viewportX = clientX - rect.left;
+            const viewportY = clientY - rect.top;
+            
+            // Точка в координатах карты (world coordinates) ДО зума
+            const worldX = (viewportX - translateX) / scale;
+            const worldY = (viewportY - translateY) / scale;
+            
+            // Применяем зум (меньшая чувствительность)
+            const newScale = Math.max(0.1, Math.min(5, scale * zoomFactor));
+            
+            // Вычисляем новый translate так, чтобы точка под курсором осталась на месте
+            // viewportX = translateX + worldX * newScale
+            // translateX = viewportX - worldX * newScale
+            translateX = viewportX - worldX * newScale;
+            translateY = viewportY - worldY * newScale;
+            scale = newScale;
+            
+            updateTransform();
+        }
+
+        // Drag ноды отключен - дерево статично по структуре
+        function startDragNode(e, node) {
+            e.stopPropagation();
+            // Ноды не двигаются - дерево статично
+            // Можно только зумить и панорамировать всю карту
+        }
+
+        function dragNode(e) {
+            // Ноды не двигаются - дерево статично
+        }
+
+        function stopDragNode() {
+            isDraggingNode = false;
+            draggedNode = null;
+        }
+
+        // Панорамирование
+        canvas.addEventListener('mousedown', (e) => {
+            const target = e.target;
+            const isNode = target.closest('.node-group') || 
+                         target.classList.contains('node-rect') ||
+                         target.classList.contains('node-container');
+            
+            if (!isNode) {
+                isPanning = true;
+                mouseStart = { x: e.clientX, y: e.clientY };
+                panStart = { x: translateX, y: translateY };
+                canvas.style.cursor = 'grabbing';
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            if (isPanning && !isDraggingNode) {
+                translateX = panStart.x + (e.clientX - mouseStart.x);
+                translateY = panStart.y + (e.clientY - mouseStart.y);
+                updateTransform();
+            } else if (isDraggingNode && draggedNode) {
+                dragNode(e);
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isPanning = false;
+            canvas.style.cursor = 'grab';
+            if (isDraggingNode) {
+                stopDragNode();
+            }
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            isPanning = false;
+            canvas.style.cursor = 'grab';
+            if (isDraggingNode) {
+                stopDragNode();
+            }
+        });
+
+        // Зум колесиком (меньшая чувствительность)
+        canvas.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            // Меньшая чувствительность - более плавный зум
+            const zoomFactor = e.deltaY > 0 ? 0.97 : 1.03;
+            zoomToPoint(e.clientX, e.clientY, zoomFactor);
+        }, { passive: false });
+
+        // Touch события
+        let touchState = {
+            lastDistance: 0,
+            lastCenter: { x: 0, y: 0 },
+            panStart: { x: 0, y: 0 }
+        };
+
+        canvas.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 1) {
+                const touch = e.touches[0];
+                touchState.panStart = { x: translateX, y: translateY };
+                touchState.lastCenter = { x: touch.clientX, y: touch.clientY };
+            } else if (e.touches.length === 2) {
+                const t1 = e.touches[0];
+                const t2 = e.touches[1];
+                touchState.lastDistance = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+                touchState.lastCenter = {
+                    x: (t1.clientX + t2.clientX) / 2,
+                    y: (t1.clientY + t2.clientY) / 2
+                };
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            
+            if (e.touches.length === 1) {
+                const touch = e.touches[0];
+                translateX = touchState.panStart.x + (touch.clientX - touchState.lastCenter.x);
+                translateY = touchState.panStart.y + (touch.clientY - touchState.lastCenter.y);
+                updateTransform();
+            } else if (e.touches.length === 2) {
+                const t1 = e.touches[0];
+                const t2 = e.touches[1];
+                const distance = Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+                const centerX = (t1.clientX + t2.clientX) / 2;
+                const centerY = (t1.clientY + t2.clientY) / 2;
+                
+                if (touchState.lastDistance > 0 && Math.abs(distance - touchState.lastDistance) > 3) {
+                    // Меньшая чувствительность для touch (в 2 раза слабее)
+                    const rawZoomFactor = distance / touchState.lastDistance;
+                    const zoomFactor = 1 + (rawZoomFactor - 1) * 0.5;
+                    zoomToPoint(centerX, centerY, zoomFactor);
+                }
+                
+                // Pan при движении центра
+                translateX += centerX - touchState.lastCenter.x;
+                translateY += centerY - touchState.lastCenter.y;
+                
+                touchState.lastDistance = distance;
+                touchState.lastCenter = { x: centerX, y: centerY };
+                updateTransform();
+            }
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', () => {
+            touchState.lastDistance = 0;
+        });
+
+        function updateTransform() {
+            // Применяем трансформацию к группе с контентом (зум и пан работают)
+            const transformGroup = document.getElementById('transform-group');
+            if (transformGroup) {
+                transformGroup.setAttribute('transform', `translate(${translateX}, ${translateY}) scale(${scale})`);
+            }
+        }
+
+        function resetView() {
+            scale = 1;
+            // Центрируем на середине карты
+            const centerX = Object.values(logicMap).reduce((sum, n) => sum + n.x + n.width/2, 0) / Object.keys(logicMap).length;
+            const centerY = Object.values(logicMap).reduce((sum, n) => sum + n.y + n.height/2, 0) / Object.keys(logicMap).length;
+            translateX = canvas.clientWidth / 2 - centerX;
+            translateY = canvas.clientHeight / 2 - centerY;
+            updateTransform();
+        }
+
+        function zoomIn() {
+            const centerX = canvas.clientWidth / 2;
+            const centerY = canvas.clientHeight / 2;
+            zoomToPoint(centerX, centerY, 1.1);
+        }
+
+        function zoomOut() {
+            const centerX = canvas.clientWidth / 2;
+            const centerY = canvas.clientHeight / 2;
+            zoomToPoint(centerX, centerY, 0.9);
+        }
+
+        function fitToScreen() {
+            // Вычисляем границы всех нод
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            Object.values(logicMap).forEach(node => {
+                minX = Math.min(minX, node.x);
+                minY = Math.min(minY, node.y);
+                maxX = Math.max(maxX, node.x + node.width);
+                maxY = Math.max(maxY, node.y + node.height);
+            });
+            
+            // Добавляем отступы
+            const padding = 50;
+            minX -= padding;
+            minY -= padding;
+            maxX += padding;
+            maxY += padding;
+            
+            const width = maxX - minX;
+            const height = maxY - minY;
+            const centerX = (minX + maxX) / 2;
+            const centerY = (minY + maxY) / 2;
+            
+            const scaleX = (canvas.clientWidth * 0.9) / width;
+            const scaleY = (canvas.clientHeight * 0.9) / height;
+            scale = Math.min(scaleX, scaleY, 2);
+            
+            translateX = canvas.clientWidth / 2 - centerX * scale;
+            translateY = canvas.clientHeight / 2 - centerY * scale;
+            
+            updateTransform();
+        }
+
+        document.getElementById('searchBox').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            Object.values(logicMap).forEach(node => {
+                const group = document.querySelector(`[data-node-id="${node.id}"]`);
+                if (group) {
+                    const text = node.name.toLowerCase() + ' ' + (node.path || '').toLowerCase();
+                    group.style.opacity = text.includes(query) ? '1' : '0.3';
+                }
+            });
+        });
+
+        function initMap() {
+            if (!projectData) {
+                console.warn('Project data not loaded, waiting...');
+                return;
+            }
+            renderNodes();
+            // renderConnections(); // Убрали связи для текстового JSON
+            updateTransform();
+        }
+
+        // Загружаем данные при загрузке страницы
+        loadProjectData().then(() => {
+            initMap();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test File Loading</title>
+</head>
+<body>
+    <h1>Testing File Loading</h1>
+    <div id="results"></div>
+    <script>
+        const files = [
+            'src/bikes/screens/home.cljd',
+            'src/bikes/core.cljd',
+            'src/bikes/app.cljd'
+        ];
+        
+        const basePath = '../../';
+        
+        async function testLoad(path) {
+            const tryPaths = [
+                `${basePath}${path}`,
+                `../${path}`,
+                path
+            ];
+            
+            for (const tryPath of tryPaths) {
+                try {
+                    const response = await fetch(tryPath);
+                    if (response.ok) {
+                        const text = await response.text();
+                        if (text && text.length > 0) {
+                            return { success: true, path: tryPath, length: text.length };
+                        }
+                    }
+                } catch (e) {
+                    continue;
+                }
+            }
+            return { success: false, path: path };
+        }
+        
+        async function runTests() {
+            const results = document.getElementById('results');
+            for (const file of files) {
+                const result = await testLoad(file);
+                const div = document.createElement('div');
+                div.style.padding = '10px';
+                div.style.margin = '5px';
+                div.style.border = '1px solid #ccc';
+                if (result.success) {
+                    div.style.background = '#d4edda';
+                    div.innerHTML = `✅ ${file}<br>Работает: ${result.path}<br>Размер: ${result.length} байт`;
+                } else {
+                    div.style.background = '#f8d7da';
+                    div.innerHTML = `❌ ${file}<br>Не удалось загрузить`;
+                }
+                results.appendChild(div);
+            }
+        }
+        
+        runTests();
+    </script>
+</body>
+</html>
+

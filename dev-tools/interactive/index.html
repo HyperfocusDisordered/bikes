@@ -1,0 +1,3413 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bikes Project - Tree View</title>
+    <!-- Highlight.js для подсветки синтаксиса -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/clojure.min.js"></script>
+    <style>
+        @font-face {
+            font-family: 'Randy GG Bold';
+            src: url('randy-gg-bold (1).ttf') format('truetype');
+            font-weight: bold;
+            font-style: normal;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Randy GG Bold', monospace;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            padding: 40px;
+            padding-right: 490px; /* Отступ справа для панели превью (450px + 40px) */
+            line-height: 1.6;
+        }
+        .tree {
+            margin-left: 0;
+        }
+        .node {
+            margin: 4px 0;
+            display: grid;
+            grid-template-columns: auto 1fr;
+            align-items: baseline;
+            gap: 16px;
+            min-height: 1em;
+            padding: 4px 8px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 6px;
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+        /* Уровень 1: Hover (наведение) - более толстое выделение */
+        .node.hover-active {
+            border-color: rgba(0, 255, 255, 0.4);
+            background-color: rgba(0, 255, 255, 0.08);
+            box-shadow: 0 0 12px rgba(0, 255, 255, 0.3);
+            border-width: 2px;
+        }
+        /* Уровень 2: Selected (клик) - обычное выделение */
+        .node.selected {
+            border-color: rgba(0, 255, 255, 0.3);
+            background-color: rgba(0, 255, 255, 0.05);
+            box-shadow: 0 0 8px rgba(0, 255, 255, 0.2);
+            border-width: 1px;
+        }
+        /* Уровень 3: Selected + Hover (клик + наведение) - самое толстое выделение */
+        .node.selected.hover-active {
+            border-color: rgba(0, 255, 255, 0.6);
+            background-color: rgba(0, 255, 255, 0.12);
+            box-shadow: 0 0 16px rgba(0, 255, 255, 0.4);
+            border-width: 3px;
+        }
+        .key {
+            font-weight: 500;
+            transition: color 0.2s;
+            font-family: 'Randy GG Bold', monospace;
+        }
+        .key:hover {
+            color: #00ffff;
+            cursor: pointer;
+            text-shadow: 0 0 2px #00cfff, 0 0 3px #00cfff80, 0 0 6px #00cfff, 0 0 35px #00cfff;
+        }
+        .value {
+            word-break: break-word;
+            font-family: 'Randy GG Bold', monospace;
+            color: #5a00ff; /* Фиолетовый по умолчанию */
+            text-shadow: 0 0 2px #5a00ff, 0 0 3px #5a00ff, 0 0 6px #5a00ff, 0 0 16px #2a00ff;
+            padding: 3px 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+            display: inline-block;
+            background-color: rgba(255, 255, 255, 0.01);
+        }
+        /* Желтый неон только для строковых литералов (обычный текст для пользователя) */
+        .value.string-literal {
+            color: #d4ff00 !important;
+            text-shadow: 0 0 2px #d4ff00, 0 0 3px #d4ff0080, 0 0 6px #d4ff00, 0 0 16px #d4ff00 !important;
+        }
+        /* Белый неон для элементов массивов - алгоритмы */
+        .value.array-item {
+            color: #FFFFFF !important; /* Белый неон для элементов массивов */
+            text-shadow: 0 0 2px #FFFFFF, 0 0 4px #FFFFFF, 0 0 8px #FFFFFF !important;
+        }
+        /* Ссылки внутри массивов наследуют цвета от общих правил для references */
+        .bracket {
+            color: #00ffff;
+            font-weight: bold;
+            font-family: 'Randy GG Bold', monospace;
+            text-shadow: 0 0 2px #00cfff, 0 0 3px #00cfff80, 0 0 6px #00cfff, 0 0 35px #00cfff;
+        }
+        .children {
+            grid-column: 1 / -1;
+            margin-left: 4ch;
+            padding-left: 0;
+            border-left: 1px solid rgba(255, 255, 255, 0.05);
+            margin-top: 4px;
+        }
+
+        /* Размеры шрифта в зависимости от уровня - линейное уменьшение */
+        /* Уровни: фиолетовый, розовый, бирюзовый, синий, фиолетовый, белый */
+        .level-0 .key { font-size: 24px; color: #5a00ff; font-family: 'Randy GG Bold', monospace; text-shadow: 0 0 2px #5a00ff, 0 0 3px #5a00ff, 0 0 6px #5a00ff, 0 0 16px #2a00ff; font-weight: bold; } /* Фиолетовый для первого уровня */
+        .level-1 .key { font-size: 20px; color: #AB38BA; font-family: 'Randy GG Bold', monospace; text-shadow: 0 0 2px #AB38BA, 0 0 3px #AB38BA80, 0 0 6px #AB38BA, 0 0 16px #AB38BA; } /* Розовый для второго уровня */
+        .level-2 .key { font-size: 18px; color: #00ffff; font-family: 'Randy GG Bold', monospace; text-shadow: 0 0 2px #00cfff, 0 0 3px #00cfff80, 0 0 6px #00cfff, 0 0 35px #00cfff; } /* Бирюзовый для третьего уровня */
+        .level-3 .key { font-size: 16px; color: #0050ff; font-family: 'Randy GG Bold', monospace; text-shadow: 0 0 2px #0025ff, 0 0 3px #0025ff80, 0 0 6px #0025ff, 0 0 16px #0025ff; } /* Синий для четвертого уровня */
+        .level-4 .key { font-size: 14px; color: #5a00ff; font-family: 'Randy GG Bold', monospace; text-shadow: 0 0 2px #5a00ff, 0 0 3px #5a00ff, 0 0 6px #5a00ff, 0 0 16px #2a00ff; } /* Фиолетовый для пятого уровня */
+        .level-5 .key { font-size: 12px; color: #FFFFFF; font-family: 'Randy GG Bold', monospace; text-shadow: 0 0 2px #FFFFFF, 0 0 4px #FFFFFF, 0 0 8px #FFFFFF; } /* Белый для шестого уровня */
+        .level-6 .key { font-size: 11px; color: #FFFFFF; font-family: 'Randy GG Bold', monospace; text-shadow: 0 0 2px #FFFFFF, 0 0 4px #FFFFFF, 0 0 8px #FFFFFF; }
+        .level-7 .key { font-size: 10px; color: #FFFFFF; font-family: 'Randy GG Bold', monospace; text-shadow: 0 0 2px #FFFFFF, 0 0 4px #FFFFFF, 0 0 8px #FFFFFF; }
+        
+        /* Цвета для вызовов (references) - переопределяют цвета уровней */
+        .reference.key-type-ui,
+        .reference.key-type-screen { color: #ff0080 !important; font-family: 'Randy GG Bold', monospace; text-shadow: 0 0 2px #ff006f, 0 0 6px #ff006f80, 0 0 20px #ff006f !important; } /* Розовый красный для UI/роутов */
+        .reference.key-type-action { color: #00ffff !important; font-family: 'Randy GG Bold', monospace; text-shadow: 0 0 2px #00cfff, 0 0 3px #00cfff80, 0 0 6px #00cfff, 0 0 35px #00cfff !important; } /* Бирюзовый для экшенов */
+        .reference.key-type-bluetooth { color: #0050ff !important; font-family: 'Randy GG Bold', monospace; text-shadow: 0 0 2px #0025ff, 0 0 3px #0025ff80, 0 0 6px #0025ff, 0 0 16px #0025ff !important; } /* Синий для bluetooth */
+        .reference.key-type-api { color: #d4ff00 !important; font-family: 'Randy GG Bold', monospace; text-shadow: 0 0 2px #00ff40, 0 0 10px #02ffa6, 0 0 5px #05ffa7, 0 0 25px #8300fe !important; } /* Зеленый для API */
+        .reference.key-type-state { color: #ff3700 !important; font-family: 'Randy GG Bold', monospace; text-shadow: 0 0 2px #ff3700, 0 0 3px #ff370080, 0 0 6px #ff3700, 0 0 16px #ff3700 !important; } /* Оранжевый для state */
+        .reference.key-type-util { color: #5a00ff !important; font-family: 'Randy GG Bold', monospace; text-shadow: 0 0 2px #5a00ff, 0 0 3px #5a00ff, 0 0 6px #5a00ff, 0 0 16px #2a00ff !important; } /* Фиолетовый для utils */
+
+        /* Для значений тоже линейное уменьшение */
+        .level-0 .value { font-size: 22px; font-family: 'Randy GG Bold', monospace; }
+        .level-1 .value { font-size: 18px; font-family: 'Randy GG Bold', monospace; }
+        .level-2 .value { font-size: 16px; font-family: 'Randy GG Bold', monospace; }
+        .level-3 .value { font-size: 14px; font-family: 'Randy GG Bold', monospace; }
+        .level-4 .value { font-size: 12px; font-family: 'Randy GG Bold', monospace; }
+        .level-5 .value { font-size: 11px; font-family: 'Randy GG Bold', monospace; }
+        .level-6 .value { font-size: 10px; font-family: 'Randy GG Bold', monospace; }
+        .level-7 .value { font-size: 9px; font-family: 'Randy GG Bold', monospace; }
+
+        .arrow {
+            color: #0050ff;
+            font-weight: bold;
+            font-family: 'Randy GG Bold', monospace;
+            text-shadow: 0 0 2px #0025ff, 0 0 3px #0025ff80, 0 0 6px #0025ff, 0 0 16px #0025ff;
+        }
+        .reference {
+            text-decoration: underline;
+            cursor: pointer;
+            transition: color 0.2s;
+            font-family: 'Randy GG Bold', monospace;
+        }
+        /* Цвет ссылок определяется через классы key-type-state/key-type-action */
+        .reference.key-type-state:hover {
+            background: rgba(255, 121, 0, 0.1);
+        }
+        .reference.key-type-action:hover {
+            background: rgba(0, 255, 222, 0.1);
+        }
+        .reference.key-type-screen:hover,
+        .reference.key-type-util:hover {
+            background: rgba(81, 54, 246, 0.1);
+        }
+        .reference:hover {
+            background: rgba(79, 195, 247, 0.1);
+        }
+        .tooltip {
+            display: none !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
+        }
+        .tooltip.visible {
+            display: none !important;
+        }
+        .tooltip .callers {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #333;
+        }
+        .tooltip .callers-title {
+            font-weight: bold;
+            color: #00ffff;
+            margin-bottom: 8px;
+            text-shadow: 0 0 2px #00cfff, 0 0 3px #00cfff80, 0 0 6px #00cfff, 0 0 35px #00cfff;
+        }
+        .tooltip .caller-item {
+            padding: 4px 0;
+            cursor: pointer;
+            color: #0050ff;
+            text-decoration: underline;
+            text-shadow: 0 0 2px #0025ff, 0 0 3px #0025ff80, 0 0 6px #0025ff, 0 0 16px #0025ff;
+        }
+        .tooltip .caller-item:hover {
+            color: #00ffff;
+            text-shadow: 0 0 2px #00cfff, 0 0 3px #00cfff80, 0 0 6px #00cfff, 0 0 35px #00cfff;
+        }
+        .nav-back-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 470px;
+            background: #00ffff;
+            color: #0a0a0a;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            z-index: 999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s, transform 0.2s;
+            box-shadow: 0 0 10px #00cfff, 0 4px 12px rgba(0, 207, 255, 0.3);
+        }
+        .nav-back-btn.visible {
+            opacity: 1;
+            pointer-events: all;
+        }
+        .nav-back-btn:hover {
+            background: #0050ff;
+            transform: translateY(-2px);
+            box-shadow: 0 0 15px #0025ff, 0 6px 16px rgba(0, 37, 255, 0.4);
+        }
+        .nav-back-btn:active {
+            transform: translateY(0);
+        }
+        
+        /* Правая панель превью - всегда видима */
+        .preview-panel {
+            position: fixed;
+            right: 0;
+            top: 0;
+            width: 450px;
+            height: 100vh;
+            background: #1a1a1a;
+            border-left: 2px solid #00ffff;
+            z-index: 1001;
+            overflow: hidden;
+            padding: 0;
+            box-shadow: -4px 0 12px rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 207, 255, 0.2);
+            display: flex;
+            flex-direction: column;
+        }
+        .preview-ui-container {
+            height: 50%;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 20px;
+            border-bottom: 2px solid #00ffff;
+        }
+        .preview-code-container {
+            height: 50%;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 20px;
+        }
+        .resize-handle {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 8px;
+            height: 100%;
+            cursor: ew-resize;
+            background: transparent;
+            z-index: 1002;
+            transition: background 0.2s;
+        }
+        .resize-handle:hover {
+            background: rgba(0, 255, 255, 0.3);
+        }
+        .resize-handle::before {
+            content: '';
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 2px;
+            height: 40px;
+            background: #00ffff;
+            opacity: 0.5;
+        }
+        .preview-section {
+            margin-bottom: 24px;
+        }
+        .preview-section-title {
+            color: #0050ff;
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 0 0 2px #0025ff, 0 0 3px #0025ff80, 0 0 6px #0025ff, 0 0 16px #0025ff;
+        }
+        .preview-code {
+            background: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 12px;
+            font-family: 'Randy GG Bold', monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #0050ff;
+            text-shadow: 0 0 2px #0025ff, 0 0 3px #0025ff80, 0 0 6px #0025ff, 0 0 16px #0025ff;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        /* Стили для highlight.js с неоновой темой */
+        .hljs {
+            background: #000000 !important;
+            color: #0050ff;
+            text-shadow: 0 0 2px #0025ff, 0 0 3px #0025ff80, 0 0 6px #0025ff, 0 0 16px #0025ff;
+        }
+        .hljs-comment,
+        .hljs-quote {
+            color: #3a00fa72;
+            text-shadow: none;
+        }
+        .hljs-keyword,
+        .hljs-selector-tag,
+        .hljs-addition {
+            color: #c800ff;
+            text-shadow: 0 0 2px #4a00ff, 0 0 6px #8000ff, 0 0 20px #8000ff;
+        }
+        .hljs-number,
+        .hljs-string,
+        .hljs-meta .hljs-meta-string,
+        .hljs-literal,
+        .hljs-doctag,
+        .hljs-regexp {
+            color: #0050ff;
+            text-shadow: 0 0 2px #0025ff, 0 0 3px #0025ff80, 0 0 6px #0025ff, 0 0 16px #0025ff;
+        }
+        .hljs-title,
+        .hljs-section,
+        .hljs-name,
+        .hljs-selector-id,
+        .hljs-selector-class {
+            color: #ff3700;
+            text-shadow: 0 0 2px #ff3700, 0 0 3px #ff370080, 0 0 6px #ff3700, 0 0 16px #ff3700;
+        }
+        .hljs-attribute,
+        .hljs-attr,
+        .hljs-variable,
+        .hljs-template-variable,
+        .hljs-class .hljs-title,
+        .hljs-type {
+            color: #ff3700;
+            text-shadow: 0 0 2px #ff3700, 0 0 3px #ff370080, 0 0 6px #ff3700, 0 0 16px #ff3700;
+        }
+        .hljs-symbol,
+        .hljs-bullet,
+        .hljs-subst,
+        .hljs-meta,
+        .hljs-meta .hljs-keyword,
+        .hljs-selector-attr,
+        .hljs-selector-pseudo,
+        .hljs-link {
+            color: #00ffff;
+            text-shadow: 0 0 2px #00cfff, 0 0 3px #00cfff80, 0 0 6px #00cfff, 0 0 35px #00cfff;
+        }
+        .hljs-built_in,
+        .hljs-deletion {
+            color: #ff3700;
+            text-shadow: 0 0 2px #ff3700, 0 0 3px #ff370080, 0 0 6px #ff3700, 0 0 16px #ff3700;
+        }
+        .hljs-formula {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .hljs-strong {
+            font-weight: bold;
+        }
+        .preview-code .file-path {
+            color: #00ffff;
+            font-weight: bold;
+            margin-bottom: 8px;
+            display: block;
+            text-shadow: 0 0 2px #00cfff, 0 0 3px #00cfff80, 0 0 6px #00cfff, 0 0 35px #00cfff;
+        }
+        .preview-code .code-link {
+            color: #0050ff;
+            text-decoration: underline;
+            cursor: pointer;
+            text-shadow: 0 0 2px #0025ff, 0 0 3px #0025ff80, 0 0 6px #0025ff, 0 0 16px #0025ff;
+        }
+        .preview-code .code-link:hover {
+            color: #00ffff;
+            text-shadow: 0 0 2px #00cfff, 0 0 3px #00cfff80, 0 0 6px #00cfff, 0 0 35px #00cfff;
+        }
+        .preview-ui {
+            background: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 16px;
+            min-height: 100px;
+        }
+        .preview-ui-element {
+            background: #2a2a2a;
+            border: 1px solid #00ffff;
+            border-radius: 4px;
+            padding: 12px;
+            margin: 8px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 0 10px rgba(0, 207, 255, 0.2);
+        }
+        .preview-ui-icon {
+            font-size: 24px;
+        }
+        .preview-ui-label {
+            color: #0050ff;
+            font-size: 14px;
+            text-shadow: 0 0 2px #0025ff, 0 0 3px #0025ff80, 0 0 6px #0025ff, 0 0 16px #0025ff;
+        }
+        .preview-empty {
+            color: #00ffff;
+            text-align: center;
+            padding: 40px 20px;
+            text-shadow: 0 0 2px #00cfff, 0 0 3px #00cfff80, 0 0 6px #00cfff, 0 0 35px #00cfff;
+        }
+        .preview-data {
+            background: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 12px;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        .preview-data pre {
+            margin: 0;
+            color: #0050ff;
+            white-space: pre-wrap;
+            word-break: break-word;
+            text-shadow: 0 0 2px #0025ff, 0 0 3px #0025ff80, 0 0 6px #0025ff, 0 0 16px #0025ff;
+        }
+        /* Стили для секции вызывающих элементов */
+        .callers-section {
+            background: #0a0a0a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 12px;
+            margin-bottom: 16px;
+        }
+        .callers-title {
+            color: #00ffff;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-shadow: 0 0 2px #00cfff, 0 0 3px #00cfff80, 0 0 6px #00cfff, 0 0 35px #00cfff;
+        }
+        .caller-item {
+            color: #ff0080;
+            font-size: 11px;
+            padding: 4px 8px;
+            margin: 4px 0;
+            cursor: pointer;
+            text-decoration: underline;
+            transition: all 0.2s;
+            display: block;
+            border-radius: 3px;
+            text-shadow: 0 0 2px #ff006f, 0 0 6px #ff006f80, 0 0 20px #ff006f;
+        }
+        .caller-item:hover {
+            background: rgba(255, 0, 128, 0.1);
+            color: #00ffff;
+            text-shadow: 0 0 2px #00cfff, 0 0 3px #00cfff80, 0 0 6px #00cfff, 0 0 35px #00cfff;
+        }
+        /* Подсветка UI элементов при наведении на экшен */
+        .node.caller-highlight {
+            border-color: rgba(255, 0, 128, 0.6) !important;
+            background-color: rgba(255, 0, 128, 0.15) !important;
+            box-shadow: 0 0 16px rgba(255, 0, 128, 0.5) !important;
+            border-width: 2px !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="root" class="tree"></div>
+    <div id="tooltip" class="tooltip"></div>
+    <div id="preview-panel" class="preview-panel">
+        <div class="resize-handle" id="resize-handle"></div>
+        <div class="preview-callers-container" id="preview-callers-container" style="padding: 20px; border-bottom: 1px solid #333; display: none;">
+            <!-- Секция вызывающих элементов будет добавляться динамически -->
+        </div>
+        <div class="preview-ui-container" id="preview-ui-container">
+            <div class="preview-empty">Наведите на элемент для просмотра UI превью</div>
+        </div>
+        <div class="preview-code-container" id="preview-code-container">
+            <div class="preview-empty">Код появится здесь</div>
+        </div>
+    </div>
+    <button id="navBackBtn" class="nav-back-btn" title="Назад (Backspace/Escape)">◀ Назад</button>
+    <div id="debug-identifiers" style="position: fixed; bottom: 0; left: 0; right: 0; background: #1a1a1a; border-top: 2px solid #00ffff; padding: 20px; max-height: 300px; overflow: auto; z-index: 998; font-size: 11px; display: none;">
+        <div style="font-weight: bold; margin-bottom: 10px; color: #00ffff; text-shadow: 0 0 2px #00cfff, 0 0 3px #00cfff80, 0 0 6px #00cfff, 0 0 35px #00cfff;">🔍 Распознанные идентификаторы (для отладки):</div>
+        <div id="debug-list"></div>
+    </div>
+    <button id="debug-toggle" style="position: fixed; bottom: 10px; left: 10px; background: #00ffff; color: #0a0a0a; border: none; border-radius: 4px; padding: 8px 12px; font-size: 12px; cursor: pointer; z-index: 999; box-shadow: 0 0 10px #00cfff;">🔍 Debug</button>
+
+    <script>
+        let projectData = null;
+        let codeLinks = null; // Карта ссылок на код из code-links.json
+        let config = null; // Конфигурация из config.json
+        let navigationStack = []; // Стек навигации: [{scrollY, element, text}]
+        let currentScrollPosition = 0;
+        let identifierMap = new Map(); // Карта: строка → {key, value, element}
+        let callersMap = new Map(); // Карта: id → [{key, value, path}] - кто вызывает эту функцию
+        let elementNodesMap = new Map(); // Карта: ключ элемента → DOM node для подсветки
+        let tooltipTimeout = null;
+        let tooltipElement = null;
+        let tooltipSourceElement = null; // Элемент, на который навели
+        let currentPreviewState = null; // Состояние превью: { key, value, identifier }
+        let clickedElement = null; // Элемент, на который кликнули - при уходе мыши восстанавливаем selected на него
+
+        // Функция для поиска самого внешнего блока под мышью
+        function findCurrentHoverElement(e) {
+            // Получаем все элементы с классом .node под курсором
+            const elementsUnderPoint = document.elementsFromPoint(e.clientX, e.clientY);
+            
+            // Ищем самый внешний .node элемент (первый в DOM, значит самый внешний)
+            for (let el of elementsUnderPoint) {
+                if (el.classList.contains('node')) {
+                    return el;
+                }
+            }
+            
+            return null;
+        }
+
+        // Единая функция для обновления состояния hover на основе текущего положения мыши
+        function updateHoverStateFromEvent(e) {
+            const currentElement = findCurrentHoverElement(e);
+            
+            // Убираем hover-active со всех элементов
+            document.querySelectorAll('.node.hover-active').forEach(el => {
+                el.classList.remove('hover-active');
+            });
+            
+            if (!currentElement) {
+                // Если мышь не над блоком, просто убираем hover-active (selected остается)
+                return;
+            }
+            
+            // Добавляем hover-active на текущий элемент (selected остается если был)
+            currentElement.classList.add('hover-active');
+            
+            // Обновляем превью для текущего элемента
+            const keyElement = currentElement.querySelector('.key');
+            if (keyElement) {
+                const key = keyElement.textContent.replace(/: $/, '').trim();
+                const data = identifierMap.get(key);
+                
+                if (data) {
+                    const extractedId = typeof data.value === 'object' && data.value !== null && data.value.id 
+                        ? data.value.id 
+                        : extractSimpleIdentifier(data.key);
+                    const identifier = extractedId || data.key;
+                    updatePreview(data.key, data.value, identifier);
+                }
+            }
+        }
+
+        // Быстрая прокрутка к элементу
+        function fastScrollTo(element) {
+            const targetPosition = element.getBoundingClientRect().top + window.scrollY - window.innerHeight / 2;
+            const startPosition = window.scrollY;
+            const distance = targetPosition - startPosition;
+            const duration = Math.min(300, Math.abs(distance) / 3); // Максимум 300ms, зависит от расстояния
+            const startTime = performance.now();
+            
+            function animate(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                // Easing функция для плавности
+                const ease = progress < 0.5 
+                    ? 2 * progress * progress 
+                    : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+                
+                window.scrollTo(0, startPosition + distance * ease);
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                }
+            }
+            
+            requestAnimationFrame(animate);
+        }
+
+        // Функция возврата назад
+        function goBack() {
+            if (navigationStack.length > 0) {
+                const prevState = navigationStack.pop();
+                if (prevState.element) {
+                    fastScrollTo(prevState.element);
+                    // Подсвечиваем элемент, к которому вернулись
+                    prevState.element.style.background = 'rgba(255, 193, 7, 0.3)';
+                    prevState.element.style.transition = 'background 0.5s';
+                    setTimeout(() => {
+                        prevState.element.style.background = '';
+                    }, 1000);
+                } else {
+                    window.scrollTo({
+                        top: prevState.scrollY,
+                        behavior: 'auto'
+                    });
+                }
+                updateBackButton();
+                // Обновляем URL для History API
+                updateHistory();
+            }
+        }
+
+        // Навигация через клик с добавлением в историю
+        function navigateToElement(element, identifier) {
+            // Сохраняем текущее состояние в стек навигации
+            navigationStack.push({
+                scrollY: window.scrollY,
+                element: document.activeElement || null,
+                text: identifier || ''
+            });
+            
+            // Добавляем в историю браузера (формат как в рабочей ссылке с serverWindowId - UUID формат)
+            function generateUUID() {
+                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                    const r = Math.random() * 16 | 0;
+                    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
+            }
+            const serverWindowId = generateUUID();
+            // Используем относительный путь для Cursor Live Preview (не localhost, чтобы не считалось external)
+            const baseUrl = window.location.pathname === '/dev-tools/interactive/index.html' ? './' : window.location.pathname;
+            history.pushState({ 
+                type: 'navigation', 
+                element: identifier,
+                scrollY: window.scrollY 
+            }, '', `?serverWindowId=${serverWindowId}`);
+            
+            fastScrollTo(element);
+            element.style.background = 'rgba(79, 195, 247, 0.3)';
+            element.style.transition = 'background 0.5s';
+            setTimeout(() => {
+                element.style.background = '';
+            }, 1500);
+            
+            updateBackButton();
+        }
+
+        // Обработчик стандартного "назад" браузера
+        window.addEventListener('popstate', (e) => {
+            if (e.state && e.state.type === 'navigation') {
+                goBack();
+            }
+        });
+
+        // Обновление истории при изменении стека
+        function updateHistory() {
+            if (navigationStack.length === 0) {
+                // Если стек пуст, убираем query параметры из URL
+                const baseUrl = window.location.origin + window.location.pathname;
+                if (window.location.search) {
+                    history.replaceState(null, '', baseUrl);
+                }
+            }
+        }
+
+        // Обновление видимости кнопки "Назад"
+        function updateBackButton() {
+            const btn = document.getElementById('navBackBtn');
+            if (btn) {
+                if (navigationStack.length > 0) {
+                    btn.classList.add('visible');
+                    btn.textContent = `◀ Назад (${navigationStack.length})`;
+                } else {
+                    btn.classList.remove('visible');
+                }
+            }
+        }
+
+        // Навигация назад по клавишам
+        window.addEventListener('keydown', (e) => {
+            if ((e.key === 'Backspace' || e.key === 'Escape') && navigationStack.length > 0) {
+                e.preventDefault();
+                goBack();
+            }
+        });
+
+        // Кнопка "Назад"
+        document.addEventListener('DOMContentLoaded', () => {
+            const btn = document.getElementById('navBackBtn');
+            if (btn) {
+                btn.addEventListener('click', goBack);
+            }
+        });
+
+        // Извлечение простого идентификатора из строки с эмодзи
+        function extractSimpleIdentifier(fullString) {
+            if (!fullString || typeof fullString !== 'string') return null;
+            
+            // Маппинг иконок-префиксов на префиксы для id
+            const iconPrefixMap = {
+                '⚡': 'func',
+                '🌐': 'api',
+                '📶': 'bluetooth',
+                '🔧': 'util',
+                '💾': 'state'
+            };
+            
+            // Маппинг префиксов (ble -> bluetooth)
+            const prefixMap = {
+                'ble': 'bluetooth',
+                'func': 'func',
+                'api': 'api',
+                'util': 'util',
+                'state': 'state'
+            };
+            
+            // Паттерны для разных типов идентификаторов
+            // 1. Формат с иконкой и точкой: 💾.current-rental
+            const iconDotPattern = /([⚡🌐📶🔧💾])\.([\w-]+)/;
+            let match = fullString.match(iconDotPattern);
+            if (match) {
+                const icon = match[1];
+                const name = match[2];
+                const prefix = iconPrefixMap[icon];
+                if (prefix) {
+                    return `${prefix}.${name}`;
+                }
+            }
+            
+            // 2. Уже простой формат: func.set-current-bike
+            const simplePattern = /\b(func|api|ble|util|state)\.([\w-]+)/;
+            match = fullString.match(simplePattern);
+            if (match) {
+                const prefix = prefixMap[match[1]] || match[1];
+                return `${prefix}.${match[2]}`;
+            }
+            
+            // 3. Новый формат с иконками: ⚡ set-current-bike ✏️ (bike) → current-bike
+            // Или с префиксом: 4️⃣ ⚡ set-current-bike ✏️ (bike) → current-bike
+            const newFormatPattern = /([⚡🌐📶🔧💾])\s+([\w-]+)\s+[^\s]+\s*\(/;
+            match = fullString.match(newFormatPattern);
+            if (match) {
+                const icon = match[1];
+                const name = match[2];
+                const prefix = iconPrefixMap[icon];
+                if (prefix) {
+                    return `${prefix}.${name}`;
+                }
+            }
+            
+            // 3. Старый формат с префиксами: func ✏️ set-current-bike(bike) → current-bike
+            const oldFormatPattern = /\b(func|api|ble|util)\s+[^\s]+\s+([\w-]+)\(/;
+            match = fullString.match(oldFormatPattern);
+            if (match) {
+                const prefix = prefixMap[match[1]] || match[1];
+                return `${prefix}.${match[2]}`;
+            }
+            
+            // 4. Формат без эмодзи: func set-current-bike(
+            const noEmojiPattern = /\b(func|api|ble|util)\s+([\w-]+)\(/;
+            match = fullString.match(noEmojiPattern);
+            if (match) {
+                const prefix = prefixMap[match[1]] || match[1];
+                return `${prefix}.${match[2]}`;
+            }
+            
+            return null;
+        }
+
+        // Построение карты идентификаторов - собираем только ключи объектов (не элементы массивов)
+        function buildIdentifierMap(obj, path = []) {
+            if (typeof obj !== 'object' || obj === null) return;
+            
+            // Если это массив - обрабатываем каждый элемент
+            if (Array.isArray(obj)) {
+                for (const item of obj) {
+                    if (typeof item === 'object' && item !== null) {
+                        // Если элемент массива - объект с Image или Text, добавляем его в карту
+                        if (item.hasOwnProperty('Image')) {
+                            const imageEmoji = item.Image;
+                            let elementKey = '';
+                            if (imageEmoji === '🚴') {
+                                elementKey = '🚴 logo';
+                            } else if (imageEmoji === '👤') {
+                                elementKey = '👤 profile';
+                            } else if (imageEmoji === '⚙️') {
+                                elementKey = '⚙️ settings';
+                            } else {
+                                elementKey = imageEmoji;
+                            }
+                            // Добавляем элемент в identifierMap
+                            identifierMap.set(elementKey, { key: elementKey, value: item, path: [...path, elementKey] });
+                        } else if (item.hasOwnProperty('Text')) {
+                            // Для текстов тоже можно добавить, но обычно они не нужны отдельно
+                            const textKey = item.Text;
+                            identifierMap.set(textKey, { key: textKey, value: item, path: [...path, textKey] });
+                        }
+                        // Рекурсивно обходим вложенные объекты
+                        buildIdentifierMap(item, path);
+                    }
+                }
+                return;
+            }
+
+            // Это объект - добавляем ключи в карту
+            for (const [key, value] of Object.entries(obj)) {
+                // Если значение - массив, обрабатываем элементы массива
+                if (Array.isArray(value)) {
+                    // Обрабатываем каждый элемент массива
+                    for (const item of value) {
+                        if (typeof item === 'object' && item !== null) {
+                            // Если элемент массива - объект с Image или Text, добавляем его в карту
+                            if (item.hasOwnProperty('Image')) {
+                                const imageEmoji = item.Image;
+                                let elementKey = '';
+                                if (imageEmoji === '🚴') {
+                                    elementKey = '🚴 logo';
+                                } else if (imageEmoji === '👤') {
+                                    elementKey = '👤 profile';
+                                } else if (imageEmoji === '⚙️') {
+                                    elementKey = '⚙️ settings';
+                                } else {
+                                    elementKey = imageEmoji;
+                                }
+                                // Добавляем элемент в identifierMap
+                                identifierMap.set(elementKey, { key: elementKey, value: item, path: [...path, key, elementKey] });
+                            } else if (item.hasOwnProperty('Text')) {
+                                const textKey = item.Text;
+                                identifierMap.set(textKey, { key: textKey, value: item, path: [...path, key, textKey] });
+                            }
+                            // Рекурсивно обходим вложенные объекты
+                            buildIdentifierMap(item, [...path, key]);
+                        }
+                    }
+                    // Продолжаем обработку, не пропускаем ключ
+                }
+                
+                // Добавляем ключ в карту
+                identifierMap.set(key, { key, value, path: [...path, key] });
+                
+                // Если в объекте есть поле 'id', добавляем его тоже
+                if (typeof value === 'object' && value !== null && value.id) {
+                    identifierMap.set(value.id, { key, value, path: [...path, key] });
+                }
+
+                // Рекурсивно обходим дерево
+                if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+                    buildIdentifierMap(value, [...path, key]);
+                }
+            }
+        }
+
+        // Сбор коллеров (кто вызывает функции) - выполняется после построения карты
+        function buildCallersMap(obj, path = [], uiElementKey = null, buttonKey = null) {
+            if (typeof obj !== 'object' || obj === null) return;
+
+            for (const [key, value] of Object.entries(obj)) {
+                // Определяем, является ли текущий ключ UI элементом
+                const isUIElement = /^[🧭💬📷🚴◀️📹🔍📲ℹ️📊▶️⏹️📋🚫]/.test(key) && !key.startsWith('⚡');
+
+                // Определяем, является ли это кнопкой (содержит стрелку →)
+                const isButton = key.includes('→');
+
+                // Обновляем текущий UI элемент - берем самый последний (ближайший)
+                const currentUIElement = isUIElement ? key : uiElementKey;
+
+                // Обновляем кнопку - сохраняем родительскую кнопку
+                const currentButton = isButton ? key : buttonKey;
+
+                // Если значение - строка, ищем в ней ссылки на идентификаторы
+                if (typeof value === 'string') {
+                    // Проходим по всем идентификаторам из карты
+                    for (const [identifier, idData] of identifierMap.entries()) {
+                        // Проверяем, является ли это определением (имеет id или извлеченный идентификатор)
+                        const isIdDefinition = idData && typeof idData.value === 'object' && idData.value !== null && idData.value.id;
+                        const extractedCallerId = extractSimpleIdentifier(idData ? idData.key : '');
+                        const isDefinition = isIdDefinition || (extractedCallerId !== null && idData && typeof idData.value === 'object' && idData.value !== null);
+
+                        if (isDefinition) {
+                            // Проверяем, содержит ли значение ссылку на этот идентификатор
+                            if (value.includes(identifier) || value.includes(idData.key)) {
+                                const callerId = idData.value.id || extractSimpleIdentifier(idData.key);
+                                if (callerId) {
+                                    if (!callersMap.has(callerId)) {
+                                        callersMap.set(callerId, []);
+                                    }
+                                    // Определяем какой UI элемент показывать как caller
+                                    // Ищем ближайший UI элемент вверх по path используя getElementType
+                                    let callerKey = null;
+
+                                    // Идем снизу вверх по path и ищем первый UI элемент
+                                    for (let i = path.length - 1; i >= 0; i--) {
+                                        const pathKey = path[i];
+                                        const elementType = getElementType(pathKey);
+
+                                        // Временное логирование для отладки
+                                        if (callerId === 'set-current-bike') {
+                                            const data = identifierMap.get(pathKey);
+                                            console.log(`[buildCallersMap] Checking path[${i}]:`, pathKey);
+                                            console.log(`  - identifierMap data:`, data);
+                                            console.log(`  - elementType:`, elementType);
+                                        }
+
+                                        if (pathKey && elementType === 'ui') {
+                                            callerKey = pathKey;
+                                            if (callerId === 'set-current-bike') {
+                                                console.log(`[buildCallersMap] Found UI element:`, callerKey);
+                                            }
+                                            break;
+                                        }
+                                    }
+
+                                    // Если не нашли UI элемент в path, используем текущий ключ
+                                    if (!callerKey) {
+                                        callerKey = key;
+                                        if (callerId === 'set-current-bike') {
+                                            console.log(`[buildCallersMap] No UI element found, using key:`, key);
+                                        }
+                                    }
+
+                                    // Добавляем информацию о том, кто вызывает
+                                    const callerInfo = { key: callerKey, value, path: [...path] };
+                                    // Проверяем, нет ли уже такого коллера
+                                    const exists = callersMap.get(callerId).some(c =>
+                                        c.key === callerInfo.key &&
+                                        JSON.stringify(c.path) === JSON.stringify(callerInfo.path)
+                                    );
+                                    if (!exists) {
+                                        callersMap.get(callerId).push(callerInfo);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Рекурсивно обходим дерево, передавая UI элемент и кнопку дальше
+                if (typeof value === 'object' && value !== null) {
+                    buildCallersMap(value, [...path, key], currentUIElement, currentButton);
+                }
+            }
+        }
+
+        // Подсчёт всех вложенных нод
+        function countNodes(obj) {
+            if (typeof obj !== 'object' || obj === null) return 0;
+
+            let count = 0;
+            for (const value of Object.values(obj)) {
+                count += 1;
+                if (typeof value === 'object' && value !== null) {
+                    count += countNodes(value);
+                }
+            }
+            return count;
+        }
+
+        // Вычисление размера шрифта на основе количества нод
+        function getFontSize(nodeCount) {
+            // Средняя разница между размерами: минимум 12px, максимум 28px
+            const minSize = 12;
+            const maxSize = 28;
+            // Умеренная зависимость
+            const size = Math.min(maxSize, Math.max(minSize, minSize + Math.log(nodeCount + 1) * 4.5));
+            return size;
+        }
+
+        // Поиск элемента в дереве по ключу
+        function findInTree(obj, searchKey) {
+            if (typeof obj !== 'object' || obj === null) return null;
+
+            // Убираем параметры из поиска (ищем по имени функции)
+            const cleanSearchKey = searchKey.replace(/\([^)]*\)/, '').trim();
+
+            for (const [key, value] of Object.entries(obj)) {
+                // Убираем эмоджи, пробелы и параметры для сравнения
+                const cleanKey = key.replace(/[^\w\s-()→]/g, '').trim();
+                const cleanKeyNoParams = key.replace(/\([^)]*\)/, '').replace(/[^\w\s-→]/g, '').trim();
+                const cleanSearch = cleanSearchKey.replace(/[^\w\s-→]/g, '').trim();
+
+                if (cleanKeyNoParams === cleanSearch || cleanKey === cleanSearch || key === searchKey || key.includes(searchKey)) {
+                    return { key, value };
+                }
+
+                if (typeof value === 'object' && value !== null) {
+                    const found = findInTree(value, searchKey);
+                    if (found) return found;
+                }
+            }
+            return null;
+        }
+
+        // Создание HTML для тултипа
+        function createTooltipContent(data, identifier = null) {
+            let content = '';
+            
+            if (typeof data !== 'object' || data === null) {
+                content = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+            } else {
+                const lines = [];
+                for (const [key, value] of Object.entries(data)) {
+                    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+                        lines.push(`${key}: {...}`);
+                    } else {
+                        lines.push(`${key}: ${JSON.stringify(value)}`);
+                    }
+                }
+                content = `<pre>${lines.join('\n')}</pre>`;
+            }
+            
+            // Добавляем информацию о коллерах
+            if (identifier) {
+                const simpleId = data.id || extractSimpleIdentifier(identifier);
+                if (simpleId && callersMap.has(simpleId)) {
+                    const callers = callersMap.get(simpleId);
+                    if (callers.length > 0) {
+                        content += '<div class="callers">';
+                        content += '<div class="callers-title">Вызывается из:</div>';
+                        callers.forEach(caller => {
+                            const displayKey = caller.key.length > 50 
+                                ? caller.key.substring(0, 47) + '...' 
+                                : caller.key;
+                            content += `<div class="caller-item" data-path="${JSON.stringify(caller.path).replace(/"/g, '&quot;')}">${displayKey}</div>`;
+                        });
+                        content += '</div>';
+                    }
+                }
+            }
+            
+            return content;
+        }
+
+        // Показ tooltip справа с логикой "не закрывать при движении к нему"
+        // Функция для поиска блока ключ-значение в Clojure структуре
+        function findClojureKeyValueBlock(lines, keyLineIdx, contextName) {
+            const keyLine = lines[keyLineIdx];
+            const keyIndent = keyLine.match(/^\s*/)[0].length;
+
+            // Начинаем с ключа
+            let blockStart = keyLineIdx;
+            let blockEnd = keyLineIdx + 1;
+
+            // Проверяем, это defn/def или ключ-значение
+            const defnMatch = keyLine.match(/\(defn\s+[\w-]+/);
+            const defMatch = keyLine.match(/\(def\s+[\w-]+/);
+
+            if (defnMatch || defMatch) {
+                // Это определение функции или переменной
+                // Ищем начало (может быть комментарий выше)
+                for (let i = keyLineIdx - 1; i >= Math.max(0, keyLineIdx - 5); i--) {
+                    const line = lines[i].trim();
+                    if (line.startsWith(';;')) {
+                        blockStart = i;
+                    } else if (line.length > 0 && !line.startsWith(';;')) {
+                        break;
+                    }
+                }
+
+                // Ищем конец - закрывающую скобку на том же уровне
+                let openParens = 0;
+                let inString = false;
+                let stringChar = null;
+
+                for (let i = keyLineIdx; i < lines.length; i++) {
+                    const line = lines[i];
+                    for (let j = 0; j < line.length; j++) {
+                        const char = line[j];
+                        const prevChar = j > 0 ? line[j - 1] : '';
+
+                        if (!inString && (char === '"' || char === "'")) {
+                            inString = true;
+                            stringChar = char;
+                        } else if (inString && char === stringChar && prevChar !== '\\') {
+                            inString = false;
+                            stringChar = null;
+                        }
+
+                        if (!inString) {
+                            if (char === '(') openParens++;
+                            if (char === ')') openParens--;
+                        }
+                    }
+
+                    if (openParens === 0 && i > keyLineIdx) {
+                        blockEnd = i + 1;
+                        break;
+                    }
+                }
+
+                return { start: blockStart, end: blockEnd };
+            }
+
+            // Ищем значение после ключа
+            // В Clojure формат: :key value или :key (expression)
+            const keyMatch = keyLine.match(/:[\w-]+\s+/);
+            if (!keyMatch) {
+                // Ключ не найден, возвращаем одну строку
+                return { start: blockStart, end: blockEnd };
+            }
+
+            // Проверяем, есть ли значение на той же строке
+            const afterKey = keyLine.substring(keyLine.indexOf(keyMatch[0]) + keyMatch[0].length).trim();
+
+            if (afterKey.length > 0) {
+                // Значение на той же строке
+                if (afterKey.startsWith('(') || afterKey.startsWith('[') || afterKey.startsWith('{')) {
+                    // Это начало выражения, нужно найти его конец
+                    let openParens = 0;
+                    let openBrackets = 0;
+                    let openBraces = 0;
+                    let inString = false;
+                    let stringChar = null;
+
+                    // Подсчитываем скобки начиная с этой строки
+                    for (let i = keyLineIdx; i < lines.length; i++) {
+                        const line = lines[i];
+                        const searchFrom = (i === keyLineIdx) ? keyLine.indexOf(keyMatch[0]) + keyMatch[0].length : 0;
+
+                        for (let j = searchFrom; j < line.length; j++) {
+                            const char = line[j];
+                            const prevChar = j > 0 ? line[j - 1] : '';
+
+                            // Обработка строк
+                            if (!inString && (char === '"' || char === "'")) {
+                                inString = true;
+                                stringChar = char;
+                            } else if (inString && char === stringChar && prevChar !== '\\') {
+                                inString = false;
+                                stringChar = null;
+                            }
+
+                            if (!inString) {
+                                if (char === '(') openParens++;
+                                if (char === ')') openParens--;
+                                if (char === '[') openBrackets++;
+                                if (char === ']') openBrackets--;
+                                if (char === '{') openBraces++;
+                                if (char === '}') openBraces--;
+                            }
+                        }
+
+                        // Если все скобки закрыты
+                        if (openParens === 0 && openBrackets === 0 && openBraces === 0) {
+                            blockEnd = i + 1;
+                            break;
+                        }
+                    }
+                } else {
+                    // Простое значение на той же строке (строка, число и т.д.)
+                    blockEnd = keyLineIdx + 1;
+                }
+            } else {
+                // Значение на следующей строке
+                // Ищем следующее непустое значение
+                for (let i = keyLineIdx + 1; i < lines.length; i++) {
+                    const line = lines[i];
+                    const trimmed = line.trim();
+                    const indent = line.match(/^\s*/)[0].length;
+
+                    if (trimmed.length === 0) {
+                        // Пустая строка, пропускаем
+                        continue;
+                    }
+
+                    // Если нашли следующий ключ на том же уровне, останавливаемся
+                    if (indent <= keyIndent && trimmed.startsWith(':')) {
+                        blockEnd = i;
+                        break;
+                    }
+
+                    // Если это вложенное выражение
+                    if (indent > keyIndent) {
+                        // Продолжаем искать конец выражения
+                        if (trimmed.startsWith('(') || trimmed.startsWith('[') || trimmed.startsWith('{')) {
+                            let openParens = 0;
+                            let openBrackets = 0;
+                            let openBraces = 0;
+                            let inString = false;
+                            let stringChar = null;
+
+                            for (let j = i; j < lines.length; j++) {
+                                const jLine = lines[j];
+
+                                for (let k = 0; k < jLine.length; k++) {
+                                    const char = jLine[k];
+                                    const prevChar = k > 0 ? jLine[k - 1] : '';
+
+                                    if (!inString && (char === '"' || char === "'")) {
+                                        inString = true;
+                                        stringChar = char;
+                                    } else if (inString && char === stringChar && prevChar !== '\\') {
+                                        inString = false;
+                                        stringChar = null;
+                                    }
+
+                                    if (!inString) {
+                                        if (char === '(') openParens++;
+                                        if (char === ')') openParens--;
+                                        if (char === '[') openBrackets++;
+                                        if (char === ']') openBrackets--;
+                                        if (char === '{') openBraces++;
+                                        if (char === '}') openBraces--;
+                                    }
+                                }
+
+                                if (openParens === 0 && openBrackets === 0 && openBraces === 0) {
+                                    blockEnd = j + 1;
+                                    break;
+                                }
+                            }
+                            break;
+                        } else {
+                            // Простое значение
+                            blockEnd = i + 1;
+                            break;
+                        }
+                    } else {
+                        // Вернулись на уровень ключа или выше
+                        blockEnd = i;
+                        break;
+                    }
+                }
+            }
+
+            return { start: blockStart, end: blockEnd };
+        }
+
+        // Функция для поиска границ блока кода в ClojureDart
+        function findCodeBlock(lines, startLine, contextName = null) {
+            // Начинаем с указанной строки (индекс начинается с 0)
+            const startIdx = Math.max(0, startLine - 1);
+
+            // Если есть contextName, ищем именно этот ключ в структуре
+            if (contextName) {
+                // Создаем несколько паттернов для поиска
+                const patterns = [
+                    // Точное совпадение с ключом: :context-name
+                    new RegExp(`:${contextName.replace(/-/g, '-')}\\s`),
+                    // defn с таким именем: (defn context-name
+                    new RegExp(`\\(defn\\s+${contextName.replace(/-/g, '-')}\\s`),
+                    // def с таким именем: (def context-name
+                    new RegExp(`\\(def\\s+${contextName.replace(/-/g, '-')}\\s`),
+                    // Поиск в комментариях: ;; context-name
+                    new RegExp(`;;.*${contextName.replace(/-/g, '-')}`),
+                ];
+
+                // Ищем строку с нужным ключом, расширяем область поиска
+                let keyLineIdx = startIdx;
+                let foundPattern = false;
+
+                // Сначала ищем в узком диапазоне (±10 строк)
+                for (let i = Math.max(0, startIdx - 10); i <= Math.min(lines.length - 1, startIdx + 10); i++) {
+                    for (const pattern of patterns) {
+                        if (pattern.test(lines[i])) {
+                            keyLineIdx = i;
+                            foundPattern = true;
+                            break;
+                        }
+                    }
+                    if (foundPattern) break;
+                }
+
+                // Если не нашли, расширяем поиск до ±30 строк
+                if (!foundPattern) {
+                    for (let i = Math.max(0, startIdx - 30); i <= Math.min(lines.length - 1, startIdx + 30); i++) {
+                        for (const pattern of patterns) {
+                            if (pattern.test(lines[i])) {
+                                keyLineIdx = i;
+                                foundPattern = true;
+                                break;
+                            }
+                        }
+                        if (foundPattern) break;
+                    }
+                }
+
+                // Находим блок для этого ключа
+                return findClojureKeyValueBlock(lines, keyLineIdx, contextName);
+            }
+
+            const startIndent = lines[startIdx].match(/^\s*/)[0].length;
+            
+            // Ищем начало блока - ищем комментарий выше или начало выражения
+            let blockStart = startIdx;
+            
+            // Ищем комментарий с описанием элемента (до 5 строк назад)
+            for (let i = startIdx; i >= Math.max(0, startIdx - 5); i--) {
+                const line = lines[i].trim();
+                if (line.startsWith(';;')) {
+                    blockStart = i;
+                    break;
+                }
+            }
+            
+            // Ищем начало выражения - открывающую скобку на том же или меньшем уровне отступов
+            for (let i = startIdx; i >= Math.max(0, startIdx - 10); i--) {
+                const line = lines[i];
+                const trimmed = line.trim();
+                const indent = line.match(/^\s*/)[0].length;
+                
+                // Если нашли открывающую скобку на том же или меньшем уровне
+                if (trimmed && (trimmed.startsWith('(') || trimmed.startsWith('{'))) {
+                    if (indent <= startIndent) {
+                        blockStart = i;
+                        break;
+                    }
+                }
+            }
+            
+            // Ищем конец блока - считаем скобки
+            let blockEnd = startIdx;
+            let openParens = 0;
+            let openBraces = 0;
+            let inString = false;
+            let stringChar = null;
+            
+            // Сначала считаем скобки до начальной строки
+            for (let i = blockStart; i < startIdx; i++) {
+                const line = lines[i];
+                for (let j = 0; j < line.length; j++) {
+                    const char = line[j];
+                    const prevChar = j > 0 ? line[j - 1] : '';
+                    
+                    // Обработка строк
+                    if (!inString && (char === '"' || char === "'")) {
+                        inString = true;
+                        stringChar = char;
+                    } else if (inString && char === stringChar && prevChar !== '\\') {
+                        inString = false;
+                        stringChar = null;
+                    }
+                    
+                    if (!inString) {
+                        if (char === '(') openParens++;
+                        if (char === ')') openParens--;
+                        if (char === '{') openBraces++;
+                        if (char === '}') openBraces--;
+                    }
+                }
+            }
+            
+            // Теперь ищем конец блока
+            for (let i = startIdx; i < lines.length; i++) {
+                const line = lines[i];
+                const trimmed = line.trim();
+                const indent = line.match(/^\s*/)[0].length;
+                
+                // Считаем скобки в строке
+                for (let j = 0; j < line.length; j++) {
+                    const char = line[j];
+                    const prevChar = j > 0 ? line[j - 1] : '';
+                    
+                    // Обработка строк
+                    if (!inString && (char === '"' || char === "'")) {
+                        inString = true;
+                        stringChar = char;
+                    } else if (inString && char === stringChar && prevChar !== '\\') {
+                        inString = false;
+                        stringChar = null;
+                    }
+                    
+                    if (!inString) {
+                        if (char === '(') openParens++;
+                        if (char === ')') openParens--;
+                        if (char === '{') openBraces++;
+                        if (char === '}') openBraces--;
+                    }
+                }
+                
+                // Если все скобки закрыты и мы прошли начальную строку
+                if (i > startIdx && openParens === 0 && openBraces === 0) {
+                    // Проверяем, не начинается ли следующий элемент
+                    if (i + 1 < lines.length) {
+                        const nextLine = lines[i + 1].trim();
+                        const nextIndent = lines[i + 1].match(/^\s*/)[0].length;
+                        
+                        // Если следующий элемент на том же или меньшем уровне отступов
+                        if (nextLine && (nextLine.startsWith('(') || nextLine.startsWith(';;') || 
+                            (nextIndent <= startIndent && nextLine !== ''))) {
+                            blockEnd = i + 1;
+                            break;
+                        }
+                    } else {
+                        blockEnd = i + 1;
+                        break;
+                    }
+                }
+            }
+            
+            // Если не нашли конец, используем эвристику
+            if (blockEnd <= blockStart || blockEnd > lines.length) {
+                // Ищем следующую пустую строку или комментарий после нескольких строк
+                for (let i = startIdx + 1; i < Math.min(startIdx + 20, lines.length); i++) {
+                    const trimmed = lines[i].trim();
+                    const indent = lines[i].match(/^\s*/)[0].length;
+                    
+                    // Если пустая строка или комментарий
+                    if (trimmed === '' || trimmed.startsWith(';;')) {
+                        if (i > startIdx + 2) {
+                            blockEnd = i;
+                            break;
+                        }
+                    }
+                    
+                    // Если следующий элемент на том же уровне
+                    if (trimmed.startsWith('(') && indent <= startIndent && i > startIdx + 3) {
+                        blockEnd = i;
+                        break;
+                    }
+                }
+                
+                // Если все еще не нашли, ограничиваем размером
+                if (blockEnd <= blockStart || blockEnd > lines.length) {
+                    blockEnd = Math.min(startIdx + 12, lines.length);
+                }
+            }
+            
+            return { start: blockStart, end: blockEnd };
+        }
+        
+        // Функция для удаления минимального отступа из блока кода
+        function dedentCodeBlock(codeBlock) {
+            const lines = codeBlock.split('\n');
+            
+            // Находим минимальный отступ среди непустых строк (в символах)
+            let minIndentChars = Infinity;
+            for (const line of lines) {
+                if (line.trim().length === 0) continue; // Пропускаем пустые строки
+                
+                // Считаем количество символов отступа (пробелы и табы)
+                let indentChars = 0;
+                for (let i = 0; i < line.length; i++) {
+                    if (line[i] === ' ' || line[i] === '\t') {
+                        indentChars++;
+                    } else {
+                        break;
+                    }
+                }
+                
+                if (indentChars < minIndentChars && indentChars > 0) {
+                    minIndentChars = indentChars;
+                }
+            }
+            
+            // Если нет отступа или все строки пустые, возвращаем как есть
+            if (minIndentChars === Infinity || minIndentChars === 0) {
+                return codeBlock;
+            }
+            
+            // Удаляем минимальное количество символов отступа из всех строк
+            const dedentedLines = lines.map(line => {
+                if (line.trim().length === 0) return line; // Пустые строки оставляем как есть
+                
+                // Удаляем первые minIndentChars символов отступа
+                let removed = 0;
+                for (let i = 0; i < line.length && removed < minIndentChars; i++) {
+                    if (line[i] === ' ' || line[i] === '\t') {
+                        removed++;
+                    } else {
+                        break;
+                    }
+                }
+                
+                return line.substring(removed);
+            });
+            
+            return dedentedLines.join('\n');
+        }
+        
+        // Функция для загрузки и отображения кода
+        async function loadCodePreview(codeLink, containerId, elementKey = null) {
+            if (!codeLink) return;
+            
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            
+            try {
+                // Парсим путь к файлу, номер строки и контекст
+                let filePath = codeLink;
+                let lineNumber = null;
+                let contextName = null;
+                
+                // Поддержка формата: "path#L123#context:name"
+                if (typeof codeLink === 'string' && codeLink.includes('#')) {
+                    const parts = codeLink.split('#');
+                    filePath = parts[0];
+
+                    // Извлекаем номер строки
+                    if (parts[1] && parts[1].startsWith('L')) {
+                        lineNumber = parseInt(parts[1].replace('L', '')) || null;
+                    }
+
+                    // Извлекаем context name
+                    if (parts[2] && parts[2].startsWith('context:')) {
+                        contextName = parts[2].replace('context:', '');
+                    }
+                }
+                
+                // Убеждаемся, что путь начинается с / для абсолютного пути
+                if (!filePath.startsWith('/') && !filePath.startsWith('http://') && !filePath.startsWith('https://')) {
+                    filePath = '/' + filePath;
+                }
+                
+                // Загружаем файл
+                const response = await fetch(filePath);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const code = await response.text();
+                const lines = code.split('\n');
+                
+                // Определяем язык по расширению файла
+                const fileExt = filePath.split('.').pop().toLowerCase();
+                let lang = 'clojure'; // По умолчанию Clojure
+                if (fileExt === 'cljs') lang = 'clojure';
+                else if (fileExt === 'cljd') lang = 'clojure';
+                else if (fileExt === 'clj') lang = 'clojure';
+                
+                // Если указан номер строки, находим полный блок кода (от начала до конца)
+                if (lineNumber !== null && !isNaN(lineNumber)) {
+                    const block = findCodeBlock(lines, lineNumber, contextName);
+                    const blockLines = lines.slice(block.start, block.end);
+                    let codeBlock = blockLines.join('\n');
+                    
+                    // Удаляем минимальный отступ из блока
+                    codeBlock = dedentCodeBlock(codeBlock);
+                    
+                    // Используем highlight.js для подсветки синтаксиса
+                    const highlighted = hljs.highlight(codeBlock, { language: lang }).value;
+                    const highlightedLines = highlighted.split('\n');
+                    
+                    let codeHtml = '<pre><code class="hljs language-' + lang + '">';
+                    highlightedLines.forEach((line, index) => {
+                        const actualLineNum = block.start + index + 1;
+                        const isHighlighted = actualLineNum === lineNumber;
+                        const highlightClass = isHighlighted ? ' style="background: rgba(255, 121, 0, 0.3); display: block; padding: 2px 4px; margin: 0 -4px;"' : ' style="display: block; padding: 2px 4px; margin: 0 -4px;"';
+                        codeHtml += `<div${highlightClass}><span style="color: #3a00fa72; margin-right: 12px; user-select: none; opacity: 0.7;">${actualLineNum}</span>${line || ' '}</div>`;
+                    });
+                    codeHtml += '</code></pre>';
+                    
+                    container.innerHTML = `<div style="font-family: 'Randy GG Bold', monospace; font-size: 12px; line-height: 1.6; overflow-x: auto; background: #000000; border-radius: 4px; padding: 12px;">${codeHtml}</div>`;
+                } else {
+                    // Показываем весь файл (ограничиваем размер)
+                    const maxLines = 100;
+                    const displayLines = lines.slice(0, maxLines);
+                    const hasMore = lines.length > maxLines;
+                    let codeBlock = displayLines.join('\n');
+                    
+                    // Удаляем минимальный отступ из блока
+                    codeBlock = dedentCodeBlock(codeBlock);
+                    
+                    // Используем highlight.js для подсветки синтаксиса
+                    const highlighted = hljs.highlight(codeBlock, { language: lang }).value;
+                    const highlightedLines = highlighted.split('\n');
+                    
+                    let codeHtml = '<pre><code class="hljs language-' + lang + '">';
+                    highlightedLines.forEach((line, index) => {
+                        codeHtml += `<div style="display: block; padding: 2px 4px; margin: 0 -4px;"><span style="color: #3a00fa72; margin-right: 12px; user-select: none; opacity: 0.7;">${index + 1}</span>${line || ' '}</div>`;
+                    });
+                    codeHtml += '</code></pre>';
+                    
+                    if (hasMore) {
+                        codeHtml += `<div style="color: #00ffff; padding: 8px 0; text-shadow: 0 0 2px #00cfff, 0 0 3px #00cfff80, 0 0 6px #00cfff, 0 0 35px #00cfff;">... (еще ${lines.length - maxLines} строк)</div>`;
+                    }
+                    
+                    container.innerHTML = `<div style="font-family: 'Randy GG Bold', monospace; font-size: 12px; line-height: 1.6; overflow-x: auto; background: #000000; border-radius: 4px; padding: 12px;">${codeHtml}</div>`;
+                }
+            } catch (error) {
+                container.innerHTML = `<div style="color: #ff3700; text-shadow: 0 0 2px #ff3700, 0 0 3px #ff370080, 0 0 6px #ff3700, 0 0 16px #ff3700;">❌ Ошибка загрузки кода: ${escapeHtml(error.message)}</div>`;
+            }
+        }
+        
+        // Функция для экранирования HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // Функция для получения кода из code-links.json
+        function getCodeLink(identifier) {
+            if (!codeLinks || !identifier) return null;
+
+            // Для UI превью ищем preview версию (preview.*)
+            const previewKey = `preview.${identifier}`;
+            if (codeLinks[previewKey]) {
+                return codeLinks[previewKey];
+            }
+
+            // Сначала пробуем точное совпадение (важно для элементов с эмодзи, например навбар)
+            if (codeLinks[identifier]) {
+                return codeLinks[identifier];
+            }
+
+            // Пробуем разные варианты ключей
+            const simpleId = extractSimpleIdentifier(identifier);
+
+            // Для simpleId тоже пробуем preview версию
+            if (simpleId) {
+                const simplePreviewKey = `preview.${simpleId}`;
+                if (codeLinks[simplePreviewKey]) {
+                    return codeLinks[simplePreviewKey];
+                }
+                if (codeLinks[simpleId]) {
+                    return codeLinks[simpleId];
+                }
+            }
+
+            // Пробуем с префиксами
+            const variants = [
+                identifier.replace(/[⚡🌐📶🔧💾]/g, '').trim(),
+                identifier.replace(/^[⚡🌐📶🔧💾]\s+/, '').split(' ')[0]
+            ];
+
+            for (const variant of variants) {
+                if (variant) {
+                    const variantPreviewKey = `preview.${variant}`;
+                    if (codeLinks[variantPreviewKey]) {
+                        return codeLinks[variantPreviewKey];
+                    }
+                    if (codeLinks[variant]) {
+                        return codeLinks[variant];
+                    }
+                }
+            }
+
+            // Отладка: логируем, если не нашли (только для элементов навбара)
+            if (identifier.includes('navbar') || identifier.includes('🧭') ||
+                identifier.includes('🚴') || identifier.includes('👤') || identifier.includes('⚙️')) {
+                console.warn('⚠️ getCodeLink не нашел запись для:', identifier, 'варианты:', variants, 'previewKey:', previewKey);
+            }
+
+            return null;
+        }
+
+        // Универсальная функция для определения типа элемента по вложению в корневую ноду
+        function getElementType(key) {
+            if (!key) return null;
+
+            const data = identifierMap.get(key);
+            if (data && data.path && data.path.length > 0) {
+                const rootNode = data.path[0];
+
+                // Определяем тип по корневой ноде
+                if (rootNode === '📱 ui') return 'ui';
+                if (rootNode === '💾 state') return 'state';
+                if (rootNode === '⚡ actions') return 'action';
+                if (rootNode === '🌐 api') return 'api';
+                if (rootNode === '📶 bluetooth') return 'bluetooth';
+                if (rootNode === '🔧 utils') return 'util';
+            }
+
+            // Дополнительные проверки для элементов без identifierMap
+            if (key.startsWith('[') && key.endsWith(']')) return 'ui'; // Экраны
+            if (key.includes('→')) return 'ui'; // Навигация
+            if (key.startsWith('💾')) return 'state';
+            if (key.startsWith('⚡')) return 'action';
+            if (key.startsWith('🌐')) return 'api';
+            if (key.startsWith('📶')) return 'bluetooth';
+            if (key.startsWith('🔧')) return 'util';
+
+            return null;
+        }
+
+        // Функция для определения, является ли элемент UI элементом
+        function isUIElement(key, value) {
+            return getElementType(key) === 'ui';
+        }
+        
+        // Моковый стейт для UI превью
+        const mockState = {
+            '💾.current-bike': {
+                id: 'BIKE-12345',
+                location: 'ул. Ленина, 10',
+                battery: 85
+            },
+            '💾.current-rental': {
+                id: 'RENTAL-67890',
+                duration: 15,
+                start: '14:30',
+                cost: 45
+            },
+            '💾.user': {
+                id: 'USER-001',
+                name: 'Иван Иванов',
+                balance: 500
+            },
+            '💾.pwa-installed': false
+        };
+        
+        // Функция для получения значения из мокового стейта
+        function getMockValue(path) {
+            return mockState[path] || null;
+        }
+        
+        // Функция для получения имени компонента из ключа
+        function getComponentName(key, codeLink) {
+            if (!codeLink) return null;
+
+            // Извлекаем название функции из пути к коду
+            // Например: "src/bikes/screens/home.cljd#L111#context:leading-preview" -> "leading-preview"
+            if (codeLink.includes('#context:')) {
+                const contextMatch = codeLink.match(/#context:([^#]+)/);
+                if (contextMatch) {
+                    const contextName = contextMatch[1];
+
+                    // Если это уже preview функция, возвращаем как есть
+                    if (contextName.endsWith('-preview')) {
+                        return contextName;
+                    }
+
+                    // Маппинг имен компонентов на их preview версии
+                    const componentMap = {
+                        'app-bar': 'app-bar-preview',
+                        'navbar': 'app-bar-preview',
+                        'welcome': 'welcome-preview',
+                        'welcomeCard': 'welcome-preview',
+                        'leading': 'leading-preview',
+                        'logo': 'leading-preview',
+                        'profile': 'profile-preview',
+                        'settings': 'settings-preview',
+                        'scan': 'scan-preview',
+                        'scanQR': 'scan-preview',
+                        'current-rental': 'current-rental-preview',
+                        'bike-rental': 'current-rental-preview',
+                        'back': 'rental-back-preview',
+                        'camera': 'camera-preview',
+                        'bike-info': 'bike-info-preview',
+                        'rental-status': 'rental-status-preview',
+                        'start': 'start-preview',
+                        'end': 'end-preview',
+                        'instructions': 'instructions-preview',
+                        'no-bike-selected': 'no-bike-selected-preview',
+                        'pwa': 'pwa-preview',
+                        'pwaPrompt': 'pwa-preview'
+                    };
+
+                    return componentMap[contextName] || (contextName + '-preview');
+                }
+            }
+            
+            // Пытаемся извлечь из ключа
+            if (key.startsWith('[') && key.endsWith(']')) {
+                // Экраны: [🏠 home] -> home-screen
+                const screenMatch = key.match(/\[.*?(\w+)\]/);
+                if (screenMatch) {
+                    return screenMatch[1] + '-screen';
+                }
+            }
+            
+            // UI компоненты: 🧭 navbar -> app-bar, 💬 welcomeCard -> welcome
+            const uiMatch = key.match(/🧭\s*(\w+)|💬\s*(\w+)|📷\s*(\w+)|📹\s*(\w+)|🚴\s*(\w+)|👤\s*(\w+)|⚙️\s*(\w+)|◀️\s*(\w+)|ℹ️\s*(\w+)|📊\s*(\w+)|▶️\s*(\w+)|⏹️\s*(\w+)|📲\s*(\w+)/);
+            if (uiMatch) {
+                const componentName = uiMatch[1] || uiMatch[2] || uiMatch[3] || uiMatch[4] || uiMatch[5] || uiMatch[6] || uiMatch[7] || uiMatch[8] || uiMatch[9] || uiMatch[10] || uiMatch[11] || uiMatch[12] || uiMatch[13];
+                
+                // Маппинг имен компонентов
+                const componentMap = {
+                    'navbar': 'app-bar',
+                    'welcomeCard': 'welcome',
+                    'scanQR': 'scan',
+                    'camera': 'camera',
+                    'pwaPrompt': 'pwa',
+                    'bikeInfo': 'bike-info',
+                    'rentalStatus': 'rental-status',
+                    'start': 'start',
+                    'end': 'end',
+                    'back': 'back',
+                    'logo': 'leading',
+                    'currentRental': 'current-rental'
+                };
+                
+                return componentMap[componentName] || componentName;
+            }
+            
+            return null;
+        }
+        
+        // Функция для создания UI превью через Flutter Web
+        async function createUIPreview(key, value, codeLink = null) {
+            const componentName = getComponentName(key, codeLink);
+
+            console.log('createUIPreview called:', { key, codeLink, componentName });
+
+            if (!componentName) {
+                // Если не можем определить компонент, возвращаем null
+                console.warn('No component name found for:', key, codeLink);
+                return null;
+            }
+
+            // Создаем iframe для Flutter Web превью
+            const previewId = `flutter-preview-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+            const phoneWidth = config?.screen?.width || 390;
+            const phoneHeight = config?.screen?.height || 844;
+
+            // Определяем это экран или компонент
+            const isScreen = componentName.endsWith('-screen') || key.startsWith('[');
+
+            // URL для Flutter Web превью компонента с параметром preview
+            const previewUrl = `../../build/web/index.html?preview=${encodeURIComponent(componentName)}`;
+
+            let html = '<div class="preview-ui">';
+
+            if (isScreen) {
+                // Для экранов - показываем в полном размере телефона, без масштабирования
+                html += `<div style="border: 2px solid #00ffff; border-radius: 20px; background: #0a0a0a; margin-bottom: 16px; width: ${phoneWidth}px; max-height: ${phoneHeight}px; box-sizing: border-box; overflow: hidden; box-shadow: 0 0 20px rgba(0, 207, 255, 0.3);">`;
+                html += `<div style="height: 30px; background: #1a1a1a; border-bottom: 1px solid #333; display: flex; align-items: center; justify-content: center; color: #00ffff; font-size: 10px; text-shadow: 0 0 2px #00cfff;">Flutter Preview: ${componentName}</div>`;
+                html += `<div style="height: calc(100% - 30px); overflow: hidden;">`;
+                html += `<iframe id="${previewId}" src="${previewUrl}" style="width: ${phoneWidth}px; height: ${phoneHeight - 30}px; border: none;" frameborder="0"></iframe>`;
+                html += `</div></div>`;
+            } else {
+                // Для компонентов - фиксированная ширина, высота растягивается до максимум высоты телефона
+                html += `<div style="border: 2px solid #00ffff; border-radius: 20px; background: #0a0a0a; margin-bottom: 16px; width: ${phoneWidth}px; min-height: 150px; max-height: ${phoneHeight}px; box-sizing: border-box; overflow: auto; box-shadow: 0 0 20px rgba(0, 207, 255, 0.3);">`;
+                html += `<div style="height: 30px; background: #1a1a1a; border-bottom: 1px solid #333; display: flex; align-items: center; justify-content: center; color: #00ffff; font-size: 10px; text-shadow: 0 0 2px #00cfff;">Flutter Preview: ${componentName}</div>`;
+                html += `<div style="padding: 10px; min-height: 120px; display: flex; align-items: center; justify-content: center;">`;
+                html += `<iframe id="${previewId}" src="${previewUrl}" style="width: ${phoneWidth - 20}px; height: 400px; border: none; background: white;" frameborder="0"></iframe>`;
+                html += `</div></div>`;
+            }
+
+            html += `<div style="color: #00ffff; font-size: 11px; margin-top: 8px; text-shadow: 0 0 2px #00cfff, 0 0 3px #00cfff80, 0 0 6px #00cfff;">💡 Загружается Flutter компонент: ${componentName}</div>`;
+            html += '</div>';
+
+            return html;
+        }
+        
+        // Функция для обновления превью панели (теперь асинхронная)
+        async function updatePreview(key, value, identifier = null) {
+            const previewPanel = document.getElementById('preview-panel');
+            const previewCallersContainer = document.getElementById('preview-callers-container');
+            const previewUIContainer = document.getElementById('preview-ui-container');
+            const previewCodeContainer = document.getElementById('preview-code-container');
+
+            if (!previewPanel || !previewUIContainer || !previewCodeContainer || !previewCallersContainer) return;
+
+            // Проверяем что это не тот же элемент что уже отображается
+            // Убираем эту проверку, чтобы превью всегда обновлялось при hover/click
+            // if (currentPreviewState && currentPreviewState.key === key && currentPreviewState.identifier === identifier) {
+            //     console.log('Already showing preview for:', key);
+            //     return; // Не обновляем если уже отображается
+            // }
+
+            // Сохраняем состояние превью для восстановления после релоада
+            currentPreviewState = { key, value, identifier };
+            sessionStorage.setItem('previewState', JSON.stringify({ key, value: null, identifier }));
+
+            let callersHtml = '';
+            let uiHtml = '';
+            let codeHtml = '';
+
+            // Определяем тип элемента
+            const isUI = isUIElement(key, value);
+            const codeLink = identifier ? getCodeLink(identifier) : null;
+
+            // Получаем идентификатор для поиска вызывающих
+            const extractedId = identifier || (typeof value === 'object' && value !== null && value.id
+                ? value.id
+                : extractSimpleIdentifier(key));
+
+            // 0. Секция вызывающих элементов (если есть)
+            if (extractedId && callersMap.has(extractedId)) {
+                const callers = callersMap.get(extractedId);
+                if (callers && callers.length > 0) {
+                    callersHtml = '<div class="callers-section">';
+                    callersHtml += '<div class="callers-title">🔗 Вызывается из:</div>';
+                    callers.forEach(caller => {
+                        const callerKey = caller.key || 'Unknown';
+                        // Формируем полный путь из массива path
+                        let fullPath = callerKey;
+                        if (caller.path && Array.isArray(caller.path) && caller.path.length > 0) {
+                            // Очищаем путь от эмодзи и лишних символов для читаемости
+                            const cleanPath = caller.path.map(p => {
+                                // Убираем квадратные скобки для screens
+                                let cleaned = p.replace(/^\[|\]$/g, '');
+                                // Убираем эмодзи в начале
+                                cleaned = cleaned.replace(/^[⚡🌐📶🔧💾🏠📷🚴🧭💬◀️📹🔍📲ℹ️📊▶️⏹️📋]\s*/, '');
+                                // Убираем стрелки и всё после них
+                                cleaned = cleaned.split('→')[0].trim();
+                                return cleaned;
+                            }).filter(p => p.length > 0);
+                            fullPath = cleanPath.join('.');
+                        }
+                        callersHtml += `<div class="caller-item" data-caller-key="${callerKey}" title="${fullPath}">${fullPath}</div>`;
+                    });
+                    callersHtml += '</div>';
+                    previewCallersContainer.style.display = 'block';
+                } else {
+                    previewCallersContainer.style.display = 'none';
+                }
+            } else {
+                previewCallersContainer.style.display = 'none';
+            }
+
+            // 1. UI превью в верхнем контейнере
+            if (isUI) {
+                console.log('UI element detected:', key, 'isUI:', isUI, 'codeLink:', codeLink);
+                const uiPreviewHtml = await createUIPreview(key, value, codeLink);
+                console.log('createUIPreview result:', uiPreviewHtml ? 'HTML returned' : 'null');
+                if (uiPreviewHtml) {
+                    uiHtml = uiPreviewHtml;
+                } else {
+                    console.warn('No Flutter preview available for:', key);
+                    uiHtml = '<div class="preview-empty">UI превью недоступно для этого элемента</div>';
+                }
+            } else {
+                // Для non-UI элементов показываем информацию о типе
+                const elementType = getElementType(key);
+                const typeLabels = {
+                    'action': '⚡ Action',
+                    'api': '🌐 API',
+                    'bluetooth': '📶 Bluetooth',
+                    'state': '💾 State',
+                    'util': '🔧 Utility'
+                };
+                const typeLabel = typeLabels[elementType] || 'Element';
+                uiHtml = `<div class="preview-empty">${typeLabel}: ${key}</div>`;
+            }
+
+            // 2. Код превью в нижнем контейнере
+            if (codeLink) {
+                codeHtml = '<div class="preview-code">';
+                codeHtml += `<span class="file-path">📄 ${codeLink}</span>`;
+
+                const codeContainerId = `code-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                codeHtml += `<div id="${codeContainerId}" style="margin-top: 12px; color: #00ffff; text-shadow: 0 0 2px #00cfff, 0 0 3px #00cfff80, 0 0 6px #00cfff, 0 0 35px #00cfff;"></div>`;
+                codeHtml += '</div>';
+
+                // Загружаем код асинхронно после добавления в DOM
+                setTimeout(() => {
+                    loadCodePreview(codeLink, codeContainerId, key);
+                }, 0);
+            } else {
+                codeHtml = '<div class="preview-empty">Нет кода для этого элемента</div>';
+            }
+
+            // Обновляем все контейнеры
+            previewCallersContainer.innerHTML = callersHtml;
+            previewUIContainer.innerHTML = uiHtml;
+            previewCodeContainer.innerHTML = codeHtml;
+
+            // Добавляем обработчики кликов и hover для вызывающих элементов
+            if (callersHtml) {
+                const callerItems = previewCallersContainer.querySelectorAll('.caller-item');
+                callerItems.forEach(item => {
+                    const callerKey = item.getAttribute('data-caller-key');
+
+                    // Обработчик клика - навигация к элементу
+                    item.addEventListener('click', () => {
+                        navigateToElementByKey(callerKey);
+                    });
+
+                    // Обработчик hover - подсветка элемента в дереве
+                    item.addEventListener('mouseenter', () => {
+                        highlightCallerElement(callerKey, true);
+                    });
+
+                    item.addEventListener('mouseleave', () => {
+                        highlightCallerElement(callerKey, false);
+                    });
+                });
+            }
+        }
+        
+        function showTooltip(e, content, identifier = null, sourceElement = null) {
+            // Tooltip больше не показываем, только обновляем превью
+            const tooltip = document.getElementById('tooltip');
+            tooltipElement = tooltip;
+            tooltipSourceElement = sourceElement || e.target;
+            
+            // Очищаем предыдущий таймаут
+            if (tooltipTimeout) {
+                clearTimeout(tooltipTimeout);
+                tooltipTimeout = null;
+            }
+            
+            // Не показываем tooltip, только обновляем превью
+            tooltip.classList.remove('visible');
+            
+            // Обновляем превью панель
+            if (sourceElement) {
+                // Получаем данные элемента
+                let key = sourceElement.textContent.replace(/: $/, '').trim();
+                let data = identifierMap.get(key);
+                
+                // Если не нашли по точному ключу, пробуем найти через родительский элемент
+                if (!data && sourceElement.closest('.node')) {
+                    const node = sourceElement.closest('.node');
+                    const keyElement = node.querySelector('.key');
+                    if (keyElement && keyElement !== sourceElement) {
+                        key = keyElement.textContent.replace(/: $/, '').trim();
+                        data = identifierMap.get(key);
+                    }
+                }
+                
+                // Если нашли данные, обновляем превью
+                if (data) {
+                    updatePreview(data.key, data.value, identifier || key);
+                } else {
+                    // Если данных нет в карте, но есть identifier, пробуем найти через него
+                    if (identifier) {
+                        const idData = identifierMap.get(identifier);
+                        if (idData) {
+                            updatePreview(idData.key, idData.value, identifier);
+                        }
+                    }
+                }
+            }
+            
+            // Позиционируем справа от элемента, на который навели
+            const padding = 20;
+            
+            // Получаем позицию элемента
+            const sourceRect = tooltipSourceElement.getBoundingClientRect();
+            
+            // Получаем реальные размеры tooltip после добавления контента
+            tooltip.style.visibility = 'hidden';
+            tooltip.style.display = 'block';
+            const tooltipRect = tooltip.getBoundingClientRect();
+            const tooltipWidth = tooltipRect.width;
+            const tooltipHeight = tooltipRect.height;
+            tooltip.style.visibility = '';
+            
+            // Позиционируем справа от элемента
+            let left = sourceRect.right + padding + window.scrollX;
+            let top = sourceRect.top + window.scrollY;
+            
+            // Проверяем, не выходит ли за правый край
+            if (left + tooltipWidth > window.innerWidth + window.scrollX) {
+                // Пробуем слева от элемента
+                left = sourceRect.left - tooltipWidth - padding + window.scrollX;
+                // Если и слева не помещается, позиционируем по правому краю экрана
+                if (left < window.scrollX) {
+                    left = window.innerWidth + window.scrollX - tooltipWidth - padding;
+                }
+            }
+            
+            // Проверяем, не выходит ли за нижний край
+            if (top + tooltipHeight > window.innerHeight + window.scrollY) {
+                top = window.innerHeight + window.scrollY - tooltipHeight - padding;
+                // Если и сверху не помещается, позиционируем по верхнему краю
+                if (top < window.scrollY) {
+                    top = window.scrollY + padding;
+                }
+            }
+            
+            tooltip.style.left = left + 'px';
+            tooltip.style.top = top + 'px';
+            
+            // Добавляем обработчики для коллеров
+            const callerItems = tooltip.querySelectorAll('.caller-item');
+            callerItems.forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const path = JSON.parse(item.getAttribute('data-path'));
+                    // Находим элемент по пути
+                    const targetElement = findElementByPath(path);
+                    if (targetElement) {
+                        navigateToElement(targetElement, path.join('.'));
+                    }
+                    hideTooltip();
+                });
+            });
+        }
+
+        // Скрытие tooltip с задержкой
+        function hideTooltip(immediate = false) {
+            if (tooltipTimeout) {
+                clearTimeout(tooltipTimeout);
+            }
+            
+            if (immediate) {
+                const tooltip = document.getElementById('tooltip');
+                if (tooltip) {
+                    tooltip.classList.remove('visible');
+                    tooltipElement = null;
+                    tooltipSourceElement = null;
+                }
+            } else {
+                tooltipTimeout = setTimeout(() => {
+                    const tooltip = document.getElementById('tooltip');
+                    if (tooltip) {
+                        tooltip.classList.remove('visible');
+                        tooltipElement = null;
+                        tooltipSourceElement = null;
+                    }
+                }, 150);
+            }
+        }
+
+        // Функция для навигации к элементу по ключу (обертка для navigateToElement)
+        function navigateToElementByKey(callerKey) {
+            const data = identifierMap.get(callerKey);
+            if (!data) {
+                console.warn('Element not found for key:', callerKey);
+                return;
+            }
+
+            const nodeElement = elementNodesMap.get(callerKey);
+            if (nodeElement) {
+                const identifier = typeof data.value === 'object' && data.value !== null && data.value.id
+                    ? data.value.id
+                    : extractSimpleIdentifier(callerKey) || callerKey;
+                navigateToElement(nodeElement, identifier);
+            } else {
+                console.warn('DOM node not found for key:', callerKey);
+            }
+        }
+
+        // Функция для подсветки вызывающего элемента в дереве
+        function highlightCallerElement(callerKey, shouldHighlight) {
+            // Убираем предыдущую подсветку
+            document.querySelectorAll('.node.caller-highlight').forEach(el => {
+                el.classList.remove('caller-highlight');
+            });
+
+            if (!shouldHighlight) return;
+
+            // Ищем элемент по ключу
+            const data = identifierMap.get(callerKey);
+            if (!data) return;
+
+            // Ищем DOM элемент
+            const nodeElement = elementNodesMap.get(callerKey);
+            if (nodeElement) {
+                nodeElement.classList.add('caller-highlight');
+                // Убрали автоматическую прокрутку при наведении - только подсветка
+            }
+        }
+
+        // Обновление отладочного списка идентификаторов
+        function updateDebugList() {
+            const debugList = document.getElementById('debug-list');
+            if (!debugList) return;
+            
+            const allEntries = [];
+            for (const [key, data] of identifierMap.entries()) {
+                if (!data) continue;
+                allEntries.push({
+                    mapKey: key,
+                    jsonKey: data.key,
+                    value: data.value,
+                    hasId: typeof data.value === 'object' && data.value !== null && data.value.id
+                });
+            }
+            
+            // Сортируем по ключу для удобства
+            allEntries.sort((a, b) => a.mapKey.localeCompare(b.mapKey));
+            
+            debugList.innerHTML = `
+                <div style="margin-bottom: 10px; color: #00ffff; font-size: 10px; text-shadow: 0 0 2px #00cfff, 0 0 3px #00cfff80, 0 0 6px #00cfff, 0 0 35px #00cfff;">
+                    Всего ключей в карте: ${allEntries.length}
+                </div>
+                ${allEntries.map(entry => 
+                `<div style="margin: 4px 0; padding: 6px; background: #2a2a2a; border-left: 3px solid #00ffff; font-size: 11px; box-shadow: 0 0 10px rgba(0, 207, 255, 0.2);">
+                    <strong style="color: #00ffff; text-shadow: 0 0 2px #00cfff, 0 0 3px #00cfff80, 0 0 6px #00cfff, 0 0 35px #00cfff;">mapKey:</strong> <code>${escapeHtml(entry.mapKey)}</code><br>
+                    <span style="color: #0050ff; text-shadow: 0 0 2px #0025ff, 0 0 3px #0025ff80, 0 0 6px #0025ff, 0 0 16px #0025ff;">jsonKey:</span> <code>${escapeHtml(entry.jsonKey)}</code><br>
+                    ${entry.hasId ? `<span style="color: #00ffff; text-shadow: 0 0 2px #00cfff, 0 0 3px #00cfff80, 0 0 6px #00cfff, 0 0 35px #00cfff;">id:</span> <code>${escapeHtml(entry.value.id)}</code><br>` : ''}
+                    <span style="color: #0050ff; text-shadow: 0 0 2px #0025ff, 0 0 3px #0025ff80, 0 0 6px #0025ff, 0 0 16px #0025ff;">value type:</span> ${typeof entry.value === 'object' && entry.value !== null ? 'object' : typeof entry.value}
+                </div>`
+            ).join('')}`;
+        }
+        
+        // Вспомогательная функция для экранирования HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Поиск элемента по пути
+        function findElementByPath(path) {
+            const keys = document.querySelectorAll('.key');
+            for (const keyEl of keys) {
+                const keyText = keyEl.textContent.replace(/: $/, '').trim();
+                // Упрощенный поиск - ищем по последнему элементу пути
+                if (path.length > 0 && keyText.includes(path[path.length - 1])) {
+                    return keyEl;
+                }
+            }
+            return null;
+        }
+
+        // Функция для "сплющивания" объектов с ключом "steps" в массивы
+        function flattenSteps(obj) {
+            if (typeof obj !== 'object' || obj === null) {
+                return obj;
+            }
+            
+            if (Array.isArray(obj)) {
+                return obj.map(item => flattenSteps(item));
+            }
+            
+            // Если объект содержит только ключ "steps" с массивом, заменяем на массив
+            const keys = Object.keys(obj).filter(k => k !== '_meta');
+            if (keys.length === 1 && keys[0] === 'steps' && Array.isArray(obj.steps)) {
+                return flattenSteps(obj.steps);
+            }
+            
+            // Рекурсивно обрабатываем все свойства
+            const result = {};
+            for (const [key, value] of Object.entries(obj)) {
+                result[key] = flattenSteps(value);
+            }
+            return result;
+        }
+
+        async function loadData() {
+            // Загружаем данные проекта с cache-busting
+            const response = await fetch('project-data.json?' + Date.now(), {
+                cache: 'no-store'
+            });
+            let rawData = await response.json();
+            
+            // Убираем уровень "steps" - заменяем объекты с ключом "steps" на массивы
+            projectData = flattenSteps(rawData);
+            
+            // Загружаем ссылки на код с cache-busting
+            try {
+                const codeLinksResponse = await fetch('code-links.json?' + Date.now(), {
+                    cache: 'no-store'
+                });
+                codeLinks = await codeLinksResponse.json();
+            } catch (e) {
+                console.warn('Не удалось загрузить code-links.json:', e);
+                codeLinks = {};
+            }
+            
+            // Загружаем конфигурацию
+            try {
+                const configResponse = await fetch('config.json');
+                config = await configResponse.json();
+            } catch (e) {
+                console.warn('Не удалось загрузить config.json:', e);
+                config = { screen: { width: 390, height: 844, device: "iPhone 14" } };
+            }
+
+            // Строим карту идентификаторов
+            buildIdentifierMap(projectData);
+            
+            // Собираем коллеры после построения карты
+            buildCallersMap(projectData);
+
+            renderTree(projectData, document.getElementById('root'), 0);
+
+            // Добавляем обработчик на root контейнер - восстанавливаем selected на кликнутый элемент при уходе мыши
+            const rootContainer = document.getElementById('root');
+            if (rootContainer) {
+                rootContainer.addEventListener('mouseleave', (e) => {
+                    // Убираем hover-active со всех элементов
+                    document.querySelectorAll('.node.hover-active').forEach(el => {
+                        el.classList.remove('hover-active');
+                    });
+                    
+                    // Убираем selected со всех элементов
+                    document.querySelectorAll('.node.selected').forEach(el => {
+                        el.classList.remove('selected');
+                    });
+
+                    // Если есть кликнутый элемент, восстанавливаем на него selected
+                    if (clickedElement) {
+                        clickedElement.element.classList.add('selected');
+                        // Показываем превью кликнутого элемента
+                        updatePreview(clickedElement.key, clickedElement.value, clickedElement.identifier);
+                    }
+                });
+            }
+
+            // Добавляем обработчики для превью панели, чтобы при наведении на неё не сбрасывалось превью
+            const previewPanel = document.getElementById('preview-panel');
+            
+            // Восстанавливаем состояние после релоада
+            const savedScrollY = sessionStorage.getItem('scrollPosition');
+            const savedPreviewState = sessionStorage.getItem('previewState');
+            
+            // Восстанавливаем скролл
+            if (savedScrollY) {
+                // Используем requestAnimationFrame для плавного восстановления
+                requestAnimationFrame(() => {
+                    window.scrollTo(0, parseInt(savedScrollY, 10));
+                });
+            }
+            
+            // Восстанавливаем превью после отрисовки дерева
+            if (savedPreviewState) {
+                try {
+                    const previewState = JSON.parse(savedPreviewState);
+                    // Небольшая задержка, чтобы убедиться, что identifierMap заполнен
+                    setTimeout(() => {
+                        // Ищем элемент в identifierMap
+                        const data = identifierMap.get(previewState.key);
+                        if (data) {
+                            updatePreview(data.key, data.value, previewState.identifier || previewState.key);
+                        } else {
+                            // Пробуем найти по identifier
+                            if (previewState.identifier) {
+                                const found = Array.from(identifierMap.entries()).find(([k, v]) => {
+                                    const extractedId = typeof v.value === 'object' && v.value !== null && v.value.id 
+                                        ? v.value.id 
+                                        : extractSimpleIdentifier(v.key);
+                                    return extractedId === previewState.identifier || v.key === previewState.identifier;
+                                });
+                                if (found) {
+                                    updatePreview(found[1].key, found[1].value, previewState.identifier);
+                                }
+                            }
+                        }
+                    }, 50);
+                } catch (e) {
+                    console.warn('Ошибка восстановления превью:', e);
+                }
+            }
+            
+            // Отладочный вывод идентификаторов
+            updateDebugList();
+            
+            // Кнопка переключения отладки
+            const debugToggle = document.getElementById('debug-toggle');
+            const debugPanel = document.getElementById('debug-identifiers');
+            if (debugToggle && debugPanel) {
+                debugToggle.addEventListener('click', () => {
+                    if (debugPanel.style.display === 'none') {
+                        debugPanel.style.display = 'block';
+                        updateDebugList();
+                    } else {
+                        debugPanel.style.display = 'none';
+                    }
+                });
+            }
+
+            // Resizable preview panel - переменные в глобальной области
+            let isResizing = false;
+            let startX = 0;
+            let startWidth = 0;
+
+            const resizeHandle = document.getElementById('resize-handle');
+            const previewPanelForResize = document.getElementById('preview-panel');
+
+            if (resizeHandle && previewPanelForResize) {
+                resizeHandle.addEventListener('mousedown', (e) => {
+                    isResizing = true;
+                    startX = e.clientX;
+                    startWidth = previewPanelForResize.offsetWidth;
+                    document.body.style.cursor = 'ew-resize';
+                    document.body.style.userSelect = 'none';
+                    e.preventDefault();
+                });
+
+                document.addEventListener('mouseup', () => {
+                    if (isResizing) {
+                        isResizing = false;
+                        document.body.style.cursor = '';
+                        document.body.style.userSelect = '';
+
+                        // Сохраняем ширину в localStorage
+                        localStorage.setItem('previewPanelWidth', previewPanelForResize.offsetWidth);
+                    }
+                });
+
+                // Восстанавливаем сохраненную ширину
+                const savedWidth = localStorage.getItem('previewPanelWidth');
+                if (savedWidth) {
+                    const width = parseInt(savedWidth);
+                    previewPanelForResize.style.width = width + 'px';
+                    document.body.style.paddingRight = (width + 40) + 'px';
+                }
+            }
+            
+            // Добавляем обработчики для tooltip (чтобы не закрывался при движении к нему)
+            const tooltip = document.getElementById('tooltip');
+            if (tooltip) {
+                tooltip.addEventListener('mouseenter', () => {
+                    if (tooltipTimeout) {
+                        clearTimeout(tooltipTimeout);
+                        tooltipTimeout = null;
+                    }
+                });
+                tooltip.addEventListener('mouseleave', () => {
+                    hideTooltip();
+                });
+            }
+            
+            // Добавляем глобальный обработчик для проверки движения курсора между элементом и tooltip
+            // И для resize preview panel
+            document.addEventListener('mousemove', (e) => {
+                // Обработка resize
+                if (isResizing && previewPanelForResize) {
+                    const deltaX = startX - e.clientX;
+                    const newWidth = Math.max(300, Math.min(800, startWidth + deltaX));
+                    previewPanelForResize.style.width = newWidth + 'px';
+                    document.body.style.paddingRight = (newWidth + 40) + 'px';
+                    return; // Прекращаем обработку tooltip когда resize активен
+                }
+
+                // Обработка tooltip
+                if (!tooltipElement || !tooltipSourceElement) return;
+                
+                if (!tooltipElement.classList.contains('visible')) return;
+                
+                const tooltipRect = tooltipElement.getBoundingClientRect();
+                const sourceRect = tooltipSourceElement.getBoundingClientRect();
+                
+                // Проверяем, находится ли курсор в области tooltip или элемента
+                const inTooltip = e.clientX >= tooltipRect.left && 
+                                 e.clientX <= tooltipRect.right &&
+                                 e.clientY >= tooltipRect.top && 
+                                 e.clientY <= tooltipRect.bottom;
+                
+                const inSource = e.clientX >= sourceRect.left && 
+                               e.clientX <= sourceRect.right &&
+                               e.clientY >= sourceRect.top && 
+                               e.clientY <= sourceRect.bottom;
+                
+                // Проверяем, находится ли курсор в "мосту" между элементом и tooltip
+                const minX = Math.min(sourceRect.right, tooltipRect.left);
+                const maxX = Math.max(sourceRect.right, tooltipRect.left);
+                const minY = Math.min(sourceRect.top, tooltipRect.top);
+                const maxY = Math.max(sourceRect.bottom, tooltipRect.bottom);
+                
+                const inBridge = e.clientX >= minX && 
+                                e.clientX <= maxX &&
+                                e.clientY >= minY && 
+                                e.clientY <= maxY;
+                
+                // Если курсор в tooltip, элементе или мосту - не закрываем
+                if (inTooltip || inSource || inBridge) {
+                    if (tooltipTimeout) {
+                        clearTimeout(tooltipTimeout);
+                        tooltipTimeout = null;
+                    }
+                }
+            });
+        }
+
+        // Функция для рендеринга строки с подсветкой идентификаторов
+        function renderStringWithLinks(str, container) {
+            const sortedKeys = Array.from(identifierMap.entries())
+                .map(([key, data]) => ({ key, data, length: key.length }))
+                .sort((a, b) => b.length - a.length); // Длинные сначала
+            
+            const foundRanges = [];
+            const fragments = [];
+            
+            // Сначала собираем все возможные совпадения
+            const allMatches = [];
+            for (const { key: searchKey, data } of sortedKeys) {
+                if (!data) continue;
+                
+                // Проверяем, содержит ли строка этот ключ
+                if (str.indexOf(searchKey) === -1) continue;
+                
+                let searchIndex = 0;
+                while ((searchIndex = str.indexOf(searchKey, searchIndex)) !== -1) {
+                    const endIndex = searchIndex + searchKey.length;
+                    
+                    // Проверяем, является ли это определением (роут, функция и т.д.)
+                    const hasId = typeof data.value === 'object' && data.value !== null && data.value.id;
+                    const extractedId = extractSimpleIdentifier(searchKey);
+                    const isIconBasedDefinition = /^[⚡🌐🔧📶]/.test(searchKey);
+                    const isScreen = (searchKey.startsWith('[') && searchKey.endsWith(']')) || 
+                                    (/^\[.*?\]$/.test(searchKey));
+                    const isDefinition = hasId || isIconBasedDefinition || isScreen || 
+                                        (extractedId !== null && typeof data.value === 'object' && data.value !== null);
+                    
+                    allMatches.push({
+                        start: searchIndex,
+                        end: endIndex,
+                        key: searchKey,
+                        data: data,
+                        isDefinition: isDefinition,
+                        priority: isDefinition ? 1 : 0 // Определения имеют приоритет
+                    });
+                    
+                    searchIndex = endIndex;
+                }
+            }
+            
+            // Сортируем по приоритету (определения первыми), затем по позиции
+            allMatches.sort((a, b) => {
+                if (a.priority !== b.priority) return b.priority - a.priority;
+                return a.start - b.start;
+            });
+            
+            // Выбираем совпадения, разрешая вложенные определения
+            for (const match of allMatches) {
+                    let overlaps = false;
+                
+                // Проверяем перекрытия с уже добавленными фрагментами
+                    for (const range of foundRanges) {
+                    // Если это определение, разрешаем ему перекрывать не-определения
+                    if (match.isDefinition) {
+                        // Определения могут перекрывать не-определения, но не другие определения
+                        const existingFragment = fragments.find(f => f.start === range.start && f.end === range.end);
+                        if (existingFragment && existingFragment.isDefinition) {
+                            // Два определения перекрываются - проверяем, какое короче (приоритет коротким)
+                            if (match.end - match.start < existingFragment.end - existingFragment.start) {
+                                // Удаляем более длинное определение
+                                const index = foundRanges.findIndex(r => r.start === range.start && r.end === range.end);
+                                if (index !== -1) {
+                                    foundRanges.splice(index, 1);
+                                    fragments.splice(fragments.indexOf(existingFragment), 1);
+                                }
+                            } else {
+                            overlaps = true;
+                            }
+                        }
+                    } else {
+                        // Не-определения не могут перекрывать уже добавленные фрагменты
+                        if (match.start < range.end && match.end > range.start) {
+                            overlaps = true;
+                        }
+                        }
+                    }
+                    
+                    if (!overlaps) {
+                    foundRanges.push({ start: match.start, end: match.end });
+                        fragments.push({
+                            type: 'link',
+                        content: match.key,
+                        data: match.data,
+                        start: match.start,
+                        end: match.end,
+                        isDefinition: match.isDefinition
+                    });
+                }
+            }
+            
+            // Если не нашли фрагментов, просто выводим текст
+            if (fragments.length === 0) {
+                const textSpan = document.createElement('span');
+                // Наследуем класс string-literal или step-detail от контейнера, если он есть
+                const isStringLiteral = container.classList.contains('string-literal');
+                const isArrayItem = container.classList.contains('array-item');
+                textSpan.className = isStringLiteral ? 'value string-literal' : (isArrayItem ? 'value array-item' : 'value');
+                textSpan.textContent = str;
+                container.appendChild(textSpan);
+                return;
+            }
+            
+            // Сортируем по позиции и строим итоговые фрагменты
+            fragments.sort((a, b) => a.start - b.start);
+            const finalFragments = [];
+            let lastIndex = 0;
+            
+            for (const frag of fragments) {
+                if (frag.start > lastIndex) {
+                    finalFragments.push({
+                        type: 'text',
+                        content: str.substring(lastIndex, frag.start)
+                    });
+                }
+                finalFragments.push(frag);
+                lastIndex = frag.end;
+            }
+            
+            if (lastIndex < str.length) {
+                finalFragments.push({
+                    type: 'text',
+                    content: str.substring(lastIndex)
+                });
+            }
+            
+            // Рендерим фрагменты
+            finalFragments.forEach(fragment => {
+                if (fragment.type === 'link') {
+                    // Проверяем, наследуем ли мы класс string-literal или array-item от контейнера
+                    const isStringLiteral = container.classList.contains('string-literal');
+                    const isArrayItem = container.classList.contains('array-item');
+                    const textClass = isStringLiteral ? 'value string-literal' : (isArrayItem ? 'value array-item' : 'value');
+                    
+                    if (!fragment.data || !fragment.data.key) {
+                        const textSpan = document.createElement('span');
+                        textSpan.className = textClass;
+                        textSpan.textContent = fragment.content;
+                        container.appendChild(textSpan);
+                        return;
+                    }
+                    
+                    // Проверяем, что это определение (есть в identifierMap и является определением)
+                    // fragment.data уже содержит данные из identifierMap, используем их напрямую
+                    const elData = fragment.data;
+                    
+                    if (!elData || !elData.key) {
+                        const textSpan = document.createElement('span');
+                        textSpan.className = textClass;
+                        textSpan.textContent = fragment.content;
+                        container.appendChild(textSpan);
+                        return;
+                    }
+                    
+                    // Проверяем, что это определение (не просто любой ключ)
+                    const hasId = typeof elData.value === 'object' && elData.value !== null && elData.value.id;
+                    const extractedId = extractSimpleIdentifier(elData.key);
+                    // Если ключ начинается с иконки функции/API/utils/bluetooth (⚡🌐🔧📶), это определение
+                    const isIconBasedDefinition = /^[⚡🌐🔧📶]/.test(elData.key);
+                    // Если ключ - роут в квадратных скобках, это определение (проверяем и по ключу, и по содержимому фрагмента)
+                    const isScreen = (elData.key.startsWith('[') && elData.key.endsWith(']')) || 
+                                    (fragment.content.startsWith('[') && fragment.content.endsWith(']')) ||
+                                    (/^\[.*?\]$/.test(elData.key)) ||
+                                    (/^\[.*?\]$/.test(fragment.content));
+                    const isDefinition = hasId || isIconBasedDefinition || isScreen || (extractedId !== null && typeof elData.value === 'object' && elData.value !== null);
+                    
+                    if (!isDefinition) {
+                        const textSpan = document.createElement('span');
+                        textSpan.className = textClass;
+                        textSpan.textContent = fragment.content;
+                        container.appendChild(textSpan);
+                        return;
+                    }
+                    
+                    const searchKey = elData.key;
+                    
+                    const refSpan = document.createElement('span');
+                    refSpan.className = 'reference';
+                    
+                    // Определяем цвет ссылки в зависимости от типа
+                    // Правила: роуты - синий, функции - бирюзовый, bluetooth/API системы - фиолетовый, API бэкенда - зеленый
+                    const linkKey = elData.key;
+                    const linkContent = fragment.content;
+                    
+                    // Проверяем, является ли это ссылкой на экран (содержит квадратные скобки) - ПЕРВЫМ ДЕЛОМ
+                    // Роуты всегда в формате [иконка название] или [название]
+                    const trimmedLinkContent = linkContent.trim();
+                    const trimmedLinkKey = linkKey.trim();
+                    const isScreenRoute = (trimmedLinkKey.startsWith('[') && trimmedLinkKey.endsWith(']')) || 
+                                        (trimmedLinkContent.startsWith('[') && trimmedLinkContent.endsWith(']')) ||
+                                        (/^\[.*?\]$/.test(trimmedLinkContent)) ||
+                                        (/^\[.*?\]$/.test(trimmedLinkKey)) ||
+                                        (linkKey.includes('[') && linkKey.includes(']')) ||
+                                        (linkContent.includes('[') && linkContent.includes(']'));
+                    
+                    // Используем универсальную функцию определения типа
+                    const elementType = getElementType(linkKey) || getElementType(linkContent);
+                    if (elementType) {
+                        refSpan.classList.add(`key-type-${elementType}`);
+                    } else if (isScreenRoute) {
+                        // Fallback для экранов
+                        refSpan.classList.add('key-type-ui');
+                    }
+                    
+                    refSpan.textContent = fragment.content;
+                    
+                    refSpan.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const elements = document.querySelectorAll('.key');
+                        let found = false;
+                        
+                        // Нормализуем searchKey для сравнения
+                        const normalizedSearchKey = searchKey.trim();
+                        
+                        for (const el of elements) {
+                            let keyText = el.textContent.replace(/: $/, '').trim();
+                            
+                            // Для роутов в квадратных скобках сравниваем точно
+                            if (normalizedSearchKey.startsWith('[') && normalizedSearchKey.endsWith(']')) {
+                                if (keyText === normalizedSearchKey) {
+                                    navigateToElement(el, normalizedSearchKey);
+                                    found = true;
+                                    break;
+                                }
+                            } else {
+                                // Для остальных элементов сравниваем как обычно
+                                if (keyText === normalizedSearchKey) {
+                                    navigateToElement(el, normalizedSearchKey);
+                                    found = true;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // Если не нашли точное совпадение, пробуем найти по частичному совпадению для роутов
+                        if (!found && normalizedSearchKey.startsWith('[') && normalizedSearchKey.endsWith(']')) {
+                        for (const el of elements) {
+                            const keyText = el.textContent.replace(/: $/, '').trim();
+                                // Пробуем найти роут, убирая возможные пробелы
+                                if (keyText.replace(/\s+/g, '') === normalizedSearchKey.replace(/\s+/g, '')) {
+                                    navigateToElement(el, normalizedSearchKey);
+                                    found = true;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (!found) {
+                            console.warn('Не найден элемент для навигации:', normalizedSearchKey, 'Доступные ключи:', Array.from(identifierMap.keys()).filter(k => k.includes('bikeRental') || k.includes('🚴')));
+                        }
+                    });
+                    
+                    // Убрали tooltip для ссылок
+                    
+                    container.appendChild(refSpan);
+                } else {
+                    // Для обычных текстовых фрагментов наследуем класс string-literal или array-item от контейнера
+                    const isStringLiteral = container.classList.contains('string-literal');
+                    const isArrayItem = container.classList.contains('array-item');
+                    const textSpan = document.createElement('span');
+                    textSpan.className = isStringLiteral ? 'value string-literal' : (isArrayItem ? 'value array-item' : 'value');
+                    textSpan.textContent = fragment.content;
+                    container.appendChild(textSpan);
+                }
+            });
+        }
+
+        function renderTree(obj, container, level) {
+            if (typeof obj !== 'object' || obj === null) {
+                const valueSpan = document.createElement('span');
+                valueSpan.className = 'value'; // Обычный цвет, не желтый
+                
+                // Если это строка, применяем подсветку идентификаторов
+                if (typeof obj === 'string') {
+                    renderStringWithLinks(obj, valueSpan);
+                } else {
+                    valueSpan.textContent = JSON.stringify(obj);
+                }
+                
+                container.appendChild(valueSpan);
+                return;
+            }
+
+            if (Array.isArray(obj)) {
+                // Рендерим массивы как список без скобок и запятых
+                obj.forEach((item, index) => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = `node level-${level}`;
+                    
+                    // Если элемент массива - объект с ключом "Text", это текст (желтый)
+                    if (typeof item === 'object' && item !== null && item.hasOwnProperty('Text')) {
+                        const valueSpan = document.createElement('span');
+                        valueSpan.className = 'value string-literal'; // Желтый для текстов
+                        valueSpan.textContent = item.Text;
+                        
+                        // Добавляем hover для превью
+                        const itemKey = item.Text;
+                        valueSpan.style.cursor = 'pointer';
+                        valueSpan.addEventListener('mouseenter', (e) => {
+                            updateHoverStateFromEvent(e);
+                        });
+                        
+                        valueSpan.addEventListener('mouseleave', (e) => {
+                            updateHoverStateFromEvent(e);
+                        });
+                        
+                        itemDiv.appendChild(valueSpan);
+                    }
+                    // Если элемент массива - объект с ключом "Image", это изображение
+                    else if (typeof item === 'object' && item !== null && item.hasOwnProperty('Image')) {
+                        const valueSpan = document.createElement('span');
+                        valueSpan.className = 'value';
+                        valueSpan.textContent = item.Image;
+                        
+                        // Добавляем hover для превью элементов Image
+                        // Определяем тип элемента по эмодзи
+                        const imageEmoji = item.Image;
+                        let elementKey = '';
+                        if (imageEmoji === '🚴') {
+                            elementKey = '🚴 logo';
+                        } else if (imageEmoji === '👤') {
+                            elementKey = '👤 profile';
+                        } else if (imageEmoji === '⚙️') {
+                            elementKey = '⚙️ settings';
+                        } else {
+                            elementKey = imageEmoji;
+                        }
+                        
+                        valueSpan.style.cursor = 'pointer';
+                        // Обработчик hover на valueSpan - показывает превью при наведении на текст/иконку
+                        valueSpan.addEventListener('mouseenter', (e) => {
+                            updateHoverStateFromEvent(e);
+                        });
+                        
+                        valueSpan.addEventListener('mouseleave', (e) => {
+                            updateHoverStateFromEvent(e);
+                        });
+                        
+                        itemDiv.appendChild(valueSpan);
+                    }
+                    // Если элемент массива - объект с ключом "algo", это алгоритм (белый, нумерация из JSON)
+                    else if (typeof item === 'object' && item !== null && item.hasOwnProperty('algo')) {
+                        const valueSpan = document.createElement('span');
+                        valueSpan.className = 'value array-item'; // Белый для алгоритмов
+                        // Нумерация уже в строке из JSON, просто отображаем
+                        renderStringWithLinks(item.algo, valueSpan);
+                        itemDiv.appendChild(valueSpan);
+                    }
+                    // Если элемент массива - строка, проверяем начинается ли с эмодзи нумерации (алгоритм)
+                    else if (typeof item === 'string') {
+                        const valueSpan = document.createElement('span');
+                        // Проверяем, начинается ли строка с эмодзи нумерации (1️⃣, 2️⃣ и т.д.)
+                        const hasNumberEmoji = /^[1-9]️⃣|^🔟/.test(item);
+                        if (hasNumberEmoji) {
+                            valueSpan.className = 'value array-item'; // Белый для алгоритмов
+                        } else {
+                            valueSpan.className = 'value'; // Обычный цвет
+                        }
+                        renderStringWithLinks(item, valueSpan);
+                        itemDiv.appendChild(valueSpan);
+                    } else {
+                        renderTree(item, itemDiv, level + 1);
+                    }
+                    
+                    // Добавляем hover для всего блока элемента - ВАЖНО для всех элементов массива
+                    itemDiv.addEventListener('mouseenter', (e) => {
+                        updateHoverStateFromEvent(e);
+                    });
+                    
+                    itemDiv.addEventListener('mouseleave', (e) => {
+                        updateHoverStateFromEvent(e);
+                    });
+
+                    // Добавляем обработчик клика для сохранения выбранного элемента
+                    itemDiv.addEventListener('click', (e) => {
+                        e.stopPropagation();
+
+                        // Проверяем, кликнули ли на уже выбранный элемент - деселектим
+                        if (clickedElement && clickedElement.element === itemDiv) {
+                            // Деселект - убираем класс selected
+                            document.querySelectorAll('.node.selected').forEach(el => el.classList.remove('selected'));
+                            clickedElement = null;
+                            return;
+                        }
+
+                        // Определяем ключ элемента
+                        let elementKey = '';
+                        let elementValue = item;
+
+                        if (typeof item === 'object' && item !== null) {
+                            if (item.hasOwnProperty('Image')) {
+                                const imageEmoji = item.Image;
+                                if (imageEmoji === '🚴') {
+                                    elementKey = '🚴 logo';
+                                } else if (imageEmoji === '👤') {
+                                    elementKey = '👤 profile';
+                                } else if (imageEmoji === '⚙️') {
+                                    elementKey = '⚙️ settings';
+                                } else {
+                                    elementKey = imageEmoji;
+                                }
+                            } else if (item.hasOwnProperty('Text')) {
+                                elementKey = item.Text;
+                            }
+                        } else if (typeof item === 'string') {
+                            elementKey = item;
+                            elementValue = item;
+                        }
+
+                        if (elementKey) {
+                            // Убираем предыдущий selected
+                            document.querySelectorAll('.node.selected').forEach(el => el.classList.remove('selected'));
+                            // Добавляем класс selected к кликнутому элементу
+                            itemDiv.classList.add('selected');
+
+                            // Сохраняем элемент как кликнутый
+                            clickedElement = {
+                                key: elementKey,
+                                value: elementValue,
+                                identifier: elementKey,
+                                element: itemDiv
+                            };
+                        }
+                    });
+
+                    // Не обрабатываем mouseleave для отдельных элементов - только для root контейнера
+
+                    // Сохраняем DOM элемент в карту для элементов массива (если это Image или Text)
+                    if (typeof item === 'object' && item !== null) {
+                        if (item.hasOwnProperty('Image')) {
+                            const imageEmoji = item.Image;
+                            let elementKey = '';
+                            if (imageEmoji === '🚴') {
+                                elementKey = '🚴 logo';
+                            } else if (imageEmoji === '👤') {
+                                elementKey = '👤 profile';
+                            } else if (imageEmoji === '⚙️') {
+                                elementKey = '⚙️ settings';
+                            } else {
+                                elementKey = imageEmoji;
+                            }
+                            elementNodesMap.set(elementKey, itemDiv);
+                        } else if (item.hasOwnProperty('Text')) {
+                            elementNodesMap.set(item.Text, itemDiv);
+                        }
+                    }
+
+                    container.appendChild(itemDiv);
+                });
+                return;
+            }
+
+            // Object
+            const entries = Object.entries(obj).filter(([key]) => key !== '_meta'); // Игнорируем мета-информацию
+
+            entries.forEach(([key, value], index) => {
+                const nodeDiv = document.createElement('div');
+                nodeDiv.className = `node level-${level}`;
+
+                const keySpan = document.createElement('span');
+                keySpan.className = 'key';
+                // Размер шрифта определяется через CSS классы level-0, level-1 и т.д.
+                
+                // Определяем тип элемента универсально через getElementType
+                const elementType = getElementType(key);
+                if (elementType) {
+                    keySpan.classList.add(`key-type-${elementType}`);
+                }
+
+                // Проверяем, является ли ключ определением
+                // Определение - это либо объект с полем id (для state), либо ключ с извлеченным идентификатором (для функций, API, Bluetooth, utils), либо роут в квадратных скобках
+                const hasId = typeof value === 'object' && value !== null && value.id;
+                const extractedId = extractSimpleIdentifier(key);
+                const isScreen = key.startsWith('[') && key.endsWith(']');
+                const isDefinition = hasId || (extractedId !== null && typeof value === 'object' && value !== null) || isScreen;
+                if (isDefinition) {
+                    // Это определение функции/API/bluetooth/utils - делаем его ссылкой
+                    keySpan.classList.add('reference');
+                    keySpan.style.cursor = 'pointer';
+                    // Тип уже определен выше через getElementType, ничего не делаем
+                    keySpan.style.textDecoration = 'underline';
+                    
+                    // Подсветка стрелок
+                    if (key.includes('→')) {
+                        const parts = key.split('→');
+                        keySpan.innerHTML = parts.map((part, i) => {
+                            if (i === 0) return part;
+                            return `<span class="arrow">→</span>${part}`;
+                        }).join('');
+                    } else {
+                        keySpan.textContent = key;
+                    }
+                    
+                    // Добавляем обработчики клика и hover
+                    keySpan.addEventListener('click', (e) => {
+                        e.stopPropagation();
+
+                        // Проверяем, кликнули ли на уже выбранный элемент - деселектим
+                        if (clickedElement && clickedElement.element === nodeDiv) {
+                            // Деселект - убираем класс selected
+                            document.querySelectorAll('.node.selected').forEach(el => el.classList.remove('selected'));
+                            clickedElement = null;
+                            return;
+                        }
+
+                        // Убираем предыдущий selected
+                        document.querySelectorAll('.node.selected').forEach(el => el.classList.remove('selected'));
+                        // Добавляем класс selected к кликнутому элементу
+                        nodeDiv.classList.add('selected');
+
+                        // Сохраняем этот элемент как кликнутый
+                        clickedElement = {
+                            key: key,
+                            value: value,
+                            identifier: typeof value === 'object' && value !== null && value.id
+                                ? value.id
+                                : extractSimpleIdentifier(key) || key,
+                            element: nodeDiv
+                        };
+                        
+                        // Ищем определение этого идентификатора
+                        // Для роутов в квадратных скобках используем ключ как есть
+                        let searchKey = key;
+                        if (!key.startsWith('[') || !key.endsWith(']')) {
+                            // Для остальных элементов извлекаем идентификатор из ключа (убираем префиксы типа "4️⃣ ")
+                            searchKey = key.replace(/^[\s\d\ufe0f\u20e3\u{1F300}-\u{1F9FF}]*/u, '').trim();
+                        }
+                        
+                        const elements = document.querySelectorAll('.key');
+                        let found = false;
+                        
+                        // Ищем определение (ключ с таким же текстом, но который является определением)
+                        for (const el of elements) {
+                            const keyText = el.textContent.replace(/: $/, '').trim();
+                            
+                            // Ищем точное совпадение
+                            if (keyText === searchKey) {
+                                // Проверяем через identifierMap, что это определение
+                                const elData = identifierMap.get(keyText);
+                                const hasId = elData && typeof elData.value === 'object' && elData.value !== null && elData.value.id;
+                                const extractedId = extractSimpleIdentifier(keyText);
+                                const isScreen = keyText.startsWith('[') && keyText.endsWith(']');
+                                const isDefinition = hasId || (extractedId !== null && elData && typeof elData.value === 'object' && elData.value !== null) || isScreen;
+                                if (isDefinition) {
+                                    // Это определение - прокручиваем к нему
+                                    if (el !== keySpan) {
+                                        navigateToElement(el, searchKey);
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        
+                        if (!found) {
+                            // Если не нашли определение, просто подсвечиваем текущий элемент
+                            navigateToElement(keySpan, searchKey);
+                        }
+                    });
+                    
+                    // Убрали tooltip для обычных элементов
+                } else {
+                    // Проверяем, является ли ключ ссылкой на идентификатор
+                    // (например, "4️⃣ func ✏️ set-current-bike(bike) → current-bike": {})
+                    // или содержит идентификатор внутри (например, "2️⃣ valid = util ✅ validate-qr-code(qrCode) → valid": {})
+                    const cleanKey = key.replace(/^[\s\d\ufe0f\u20e3\u{1F300}-\u{1F9FF}]*/u, '').trim();
+                    
+                    // Проверяем, начинается ли ключ с иконки-префикса (новый формат)
+                    let isIdentifierReference = /^[⚡🌐📶🔧💾]\s+/.test(cleanKey);
+                    
+                    // Если нет, проверяем старый формат с префиксами
+                    if (!isIdentifierReference) {
+                        isIdentifierReference = /^(func|api|ble|util|state)\s+/.test(cleanKey);
+                    }
+                    
+                    // Если нет, проверяем, содержит ли ключ идентификатор внутри
+                    if (!isIdentifierReference) {
+                        // Ищем новый формат: "🔧 validate-qr-code ✅ (...)" или старый: "util ✅ validate-qr-code(...)"
+                        const newFormatPattern = /[⚡🌐📶🔧💾]\s+[\w-]+\s+[^\s]+\s*\(/;
+                        const oldFormatPattern = /\b(func|api|ble|util|state)\s+[^\s]+\s+([\w-]+)\(/;
+                        isIdentifierReference = newFormatPattern.test(key) || oldFormatPattern.test(key);
+                    }
+                    
+                    if (isIdentifierReference) {
+                        // Это ссылка на идентификатор - делаем её кликабельной
+                        // Сохраняем классы типов, которые уже были добавлены
+                        keySpan.classList.add('reference');
+                        keySpan.style.cursor = 'pointer';
+                        // Цвет будет применен через классы key-type-action/key-type-state/key-type-util, не перезаписываем
+                        if (!keySpan.classList.contains('key-type-action') && !keySpan.classList.contains('key-type-state') && !keySpan.classList.contains('key-type-util')) {
+                            keySpan.style.color = '#4fc3f7';
+                        }
+                        keySpan.style.textDecoration = 'underline';
+                        
+                        // Подсветка стрелок
+                        if (key.includes('→')) {
+                            const parts = key.split('→');
+                            keySpan.innerHTML = parts.map((part, i) => {
+                                if (i === 0) return part;
+                                return `<span class="arrow">→</span>${part}`;
+                            }).join('');
+                        } else {
+                            keySpan.textContent = key;
+                        }
+                        
+                        // Извлекаем идентификатор из ключа
+                        // Если ключ начинается с идентификатора - используем cleanKey
+                        // Если идентификатор внутри - извлекаем его
+                        let identifierToFind = cleanKey;
+                        
+                        // Проверяем новый формат с иконками
+                        if (!/^[⚡🌐📶🔧💾]\s+/.test(cleanKey) && !/^(func|api|ble|util|state)\s+/.test(cleanKey)) {
+                            // Ищем идентификатор внутри строки
+                            // Новый формат: "🔧 validate-qr-code ✅ (qrCode) → valid"
+                            const newFormatMatch = key.match(/[⚡🌐📶🔧💾]\s+[\w-]+\s+[^\s]+\s*\([^)]*\)\s*→[^→]*/);
+                            if (newFormatMatch) {
+                                identifierToFind = newFormatMatch[0].trim();
+                            } else {
+                                // Старый формат: "util ✅ validate-qr-code(qrCode) → valid"
+                                const oldFormatMatch = key.match(/\b(func|api|ble|util|state)\s+[^\s]+\s+([\w-]+)\([^)]*\)\s*→[^→]*/);
+                                if (oldFormatMatch) {
+                                    identifierToFind = oldFormatMatch[0].trim();
+                                }
+                            }
+                        }
+                        
+                        // Добавляем обработчик клика для ссылки на идентификатор
+                        keySpan.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            
+                            const elements = document.querySelectorAll('.key');
+                            let found = false;
+                            
+                            // Ищем определение (ключ с таким же текстом, который является определением)
+                            for (const el of elements) {
+                                const keyText = el.textContent.replace(/: $/, '').trim();
+                                
+                                // Ищем точное совпадение с идентификатором
+                                // Также проверяем, что это определение
+                                const elData = identifierMap.get(keyText);
+                                const hasId = elData && typeof elData.value === 'object' && elData.value !== null && elData.value.id;
+                                const extractedId = extractSimpleIdentifier(keyText);
+                                const isDefinition = hasId || (extractedId !== null && elData && typeof elData.value === 'object' && elData.value !== null);
+                                if (isDefinition) {
+                                    // Проверяем, совпадает ли ключ с искомым идентификатором
+                                    // Убираем префиксы типа "4️⃣ " для сравнения
+                                    const cleanKeyText = keyText.replace(/^[\s\d\ufe0f\u20e3\u{1F300}-\u{1F9FF}]*/u, '').trim();
+                                    const cleanIdentifierToFind = identifierToFind.replace(/^[\s\d\ufe0f\u20e3\u{1F300}-\u{1F9FF}]*/u, '').trim();
+                                    
+                                    // Также извлекаем название функции для более надежного сравнения
+                                    const extractFunctionName = (str) => {
+                                        // Ищем паттерн: иконка название иконка (параметры)
+                                        const match = str.match(/[⚡🌐📶🔧💾]\s+([\w-]+)\s+[^\s]+\s*\(/);
+                                        return match ? match[1] : null;
+                                    };
+                                    
+                                    const keyFunctionName = extractFunctionName(keyText);
+                                    const identifierFunctionName = extractFunctionName(identifierToFind);
+                                    
+                                    // Проверяем совпадение по названию функции
+                                    const functionNameMatch = keyFunctionName && identifierFunctionName && keyFunctionName === identifierFunctionName;
+                                    
+                                    if (keyText === identifierToFind || 
+                                        cleanKeyText === cleanIdentifierToFind ||
+                                        functionNameMatch) {
+                                        // Это определение - прокручиваем к нему
+                                        navigateToElement(el, identifierToFind);
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            
+                            if (!found) {
+                                // Если не нашли определение, просто подсвечиваем текущий элемент
+                                navigateToElement(keySpan, identifierToFind);
+                            }
+                        });
+                        
+                        // Убрали tooltip для обычных элементов
+                    } else {
+                        // Обычный ключ - просто отображаем
+                        if (key.includes('→')) {
+                            const parts = key.split('→');
+                            keySpan.innerHTML = parts.map((part, i) => {
+                                if (i === 0) return part;
+                                return `<span class="arrow">→</span>${part}`;
+                            }).join('');
+                        } else {
+                            keySpan.textContent = key;
+                        }
+                    }
+                }
+
+                // Если значение - простое, показываем inline
+                if (typeof value !== 'object' || value === null) {
+                    keySpan.innerHTML += '<span class="bracket">: </span>';
+                    nodeDiv.appendChild(keySpan);
+
+                    const valueSpan = document.createElement('span');
+                    // Желтыми должны быть только элементы с ключом "Text"
+                    if (key === 'Text') {
+                        valueSpan.className = 'value string-literal'; // Желтый для текстов
+                    } else {
+                        valueSpan.className = 'value'; // Обычный цвет
+                    }
+
+                    // Если это строка, применяем подсветку идентификаторов
+                    if (typeof value === 'string') {
+                        renderStringWithLinks(value, valueSpan);
+                    } else {
+                        valueSpan.textContent = JSON.stringify(value);
+                    }
+
+                    nodeDiv.appendChild(valueSpan);
+                }
+                // Если объект или массив - рендерим детей
+                else if (Array.isArray(value) || (typeof value === 'object' && value !== null && Object.keys(value).length > 0)) {
+                    // Проверяем, является ли это объектом с единственным массивом Text (вложение 1:1)
+                    const keys = Object.keys(value);
+                    const isSingleTextArray = keys.length === 1 && 
+                        keys[0] === 'Text' && 
+                        Array.isArray(value[keys[0]]) && 
+                        value[keys[0]].length > 0 &&
+                        value[keys[0]].every(item => typeof item === 'object' && item !== null && item.hasOwnProperty('Text'));
+                    
+                    // Проверяем, является ли это объектом с массивом steps (старый формат) или algo (новый формат)
+                    const isStepsArray = keys.length === 1 && 
+                        (keys[0] === 'steps' || keys[0] === 'algo') && 
+                        Array.isArray(value[keys[0]]);
+                    
+                    if (isSingleTextArray) {
+                        // Отображаем на одной линии: ключ : значения из Text
+                        keySpan.innerHTML += '<span class="bracket">: </span>';
+                        nodeDiv.appendChild(keySpan);
+                        
+                        const textArray = value[keys[0]];
+                        textArray.forEach((textObj, index) => {
+                            if (textObj && textObj.Text) {
+                                const valueSpan = document.createElement('span');
+                                valueSpan.className = 'value string-literal'; // Желтый для текстов
+                                valueSpan.textContent = textObj.Text;
+                                if (index < textArray.length - 1) {
+                                    valueSpan.textContent += ', ';
+                                }
+                                nodeDiv.appendChild(valueSpan);
+                            }
+                        });
+                    } else if (isStepsArray) {
+                        // Отображаем алгоритм: ключ : шаги
+                        keySpan.innerHTML += '<span class="bracket">: </span>';
+                        nodeDiv.appendChild(keySpan);
+                        
+                        const stepsArray = value[keys[0]];
+                        stepsArray.forEach((step, index) => {
+                            const stepDiv = document.createElement('div');
+                            stepDiv.className = `node level-${level + 1}`;
+                            
+                            const valueSpan = document.createElement('span');
+                            // Если это объект с ключом algo, берем значение
+                            if (typeof step === 'object' && step !== null && step.hasOwnProperty('algo')) {
+                                valueSpan.className = 'value array-item'; // Белый для алгоритмов
+                                renderStringWithLinks(step.algo, valueSpan);
+                            }
+                            // Если это строка, проверяем начинается ли с эмодзи нумерации
+                            else if (typeof step === 'string') {
+                                const hasNumberEmoji = /^[1-9]️⃣|^🔟/.test(step);
+                                valueSpan.className = hasNumberEmoji ? 'value array-item' : 'value';
+                                renderStringWithLinks(step, valueSpan);
+                            } else {
+                                valueSpan.textContent = JSON.stringify(step);
+                            }
+                            
+                            stepDiv.appendChild(valueSpan);
+                            nodeDiv.appendChild(stepDiv);
+                        });
+                    } else {
+                        // Обычное вложение - рендерим детей
+                    nodeDiv.appendChild(keySpan);
+                    const childrenDiv = document.createElement('div');
+                    childrenDiv.className = 'children';
+                    renderTree(value, childrenDiv, level + 1);
+                    nodeDiv.appendChild(childrenDiv);
+                    }
+                } else {
+                    nodeDiv.appendChild(keySpan);
+                }
+                
+                // Добавляем обработчик hover для ВСЕХ элементов, чтобы обновлять превью
+                // Это гарантирует, что превью обновляется для всех элементов, включая экраны и UI
+                const updatePreviewOnHover = (e) => {
+                    // Используем оригинальный key напрямую (не textContent, т.к. там может быть HTML)
+                    // Это важно для элементов навбара и других UI элементов
+                    let data = identifierMap.get(key);
+                    
+                    // Если не нашли в карте, используем текущий key и value напрямую
+                    if (!data) {
+                        data = { key: key, value: value };
+                    }
+                    
+                    // Обновляем превью
+                    // Для элементов навбара и других UI элементов используем сам key как identifier
+                    // если extractSimpleIdentifier вернул null
+                    const extractedId = typeof data.value === 'object' && data.value !== null && data.value.id 
+                        ? data.value.id 
+                        : extractSimpleIdentifier(data.key);
+                    
+                    // Если extractedId null, используем сам key (важно для элементов с эмодзи, например навбар)
+                    const identifier = extractedId || data.key;
+                    updatePreview(data.key, data.value, identifier);
+                };
+                
+                // Добавляем обработчик для обновления превью
+                // Используем capture phase, чтобы он вызывался раньше других обработчиков
+                keySpan.addEventListener('mouseenter', updatePreviewOnHover, { capture: true });
+                
+                // Управление hover-эффектом через единую функцию
+                nodeDiv.addEventListener('mouseenter', (e) => {
+                    updateHoverStateFromEvent(e);
+                });
+                
+                nodeDiv.addEventListener('mouseleave', (e) => {
+                    updateHoverStateFromEvent(e);
+                });
+
+                // Добавляем обработчик клика для nodeDiv (но только если это не клик на keySpan)
+                nodeDiv.addEventListener('click', (e) => {
+                    // Не сохраняем, если кликнули на keySpan (он сам сохранит)
+                    if (e.target !== keySpan && !keySpan.contains(e.target)) {
+                        e.stopPropagation();
+
+                        // Проверяем, кликнули ли на уже выбранный элемент - деселектим
+                        if (clickedElement && clickedElement.element === nodeDiv) {
+                            // Деселект
+                            clickedElement = null;
+                            return;
+                        }
+
+                        // Сохраняем этот элемент как кликнутый
+                        clickedElement = {
+                            key: key,
+                            value: value,
+                            identifier: typeof value === 'object' && value !== null && value.id
+                                ? value.id
+                                : extractSimpleIdentifier(key) || key,
+                            element: nodeDiv
+                        };
+                    }
+                });
+
+                // Не обрабатываем mouseleave для отдельных элементов - только для root контейнера
+
+                // Сохраняем DOM элемент в карту для быстрого доступа
+                elementNodesMap.set(key, nodeDiv);
+
+                container.appendChild(nodeDiv);
+            });
+        }
+
+        // Убеждаемся, что панель превью всегда видима
+        document.addEventListener('DOMContentLoaded', () => {
+            const previewPanel = document.getElementById('preview-panel');
+            if (previewPanel) {
+                previewPanel.style.transform = 'none';
+                previewPanel.style.transition = 'none';
+            }
+        });
+        
+        loadData();
+
+        // Live Reload через Server-Sent Events
+        (function setupLiveReload() {
+            const eventSource = new EventSource('/events');
+
+            eventSource.onopen = () => {
+                console.log('🔌 Live reload connected');
+            };
+
+            eventSource.onmessage = (event) => {
+                if (event.data === 'reload') {
+                    console.log('🔄 Reloading page...');
+
+                    // Создаем оверлей для анимации обновления
+                    const overlay = document.createElement('div');
+                    overlay.style.cssText = `
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 100vw;
+                        height: 100vh;
+                        background: linear-gradient(135deg, rgba(0, 207, 255, 0.95) 0%, rgba(0, 100, 255, 0.95) 100%);
+                        z-index: 999999;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        flex-direction: column;
+                        gap: 20px;
+                        opacity: 0;
+                        transition: opacity 0.3s ease;
+                    `;
+
+                    const icon = document.createElement('div');
+                    icon.style.cssText = `
+                        font-size: 64px;
+                        animation: spin 1s linear infinite;
+                    `;
+                    icon.textContent = '🔄';
+
+                    const text = document.createElement('div');
+                    text.style.cssText = `
+                        font-family: 'Randy GG Bold', monospace;
+                        font-size: 24px;
+                        color: white;
+                        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+                    `;
+                    text.textContent = 'Updating...';
+
+                    overlay.appendChild(icon);
+                    overlay.appendChild(text);
+                    document.body.appendChild(overlay);
+
+                    // Добавляем CSS анимацию для вращения
+                    const style = document.createElement('style');
+                    style.textContent = `
+                        @keyframes spin {
+                            from { transform: rotate(0deg); }
+                            to { transform: rotate(360deg); }
+                        }
+                    `;
+                    document.head.appendChild(style);
+
+                    // Плавное появление оверлея
+                    requestAnimationFrame(() => {
+                        overlay.style.opacity = '1';
+                    });
+
+                    // Reload через 400ms
+                    setTimeout(() => {
+                        location.reload();
+                    }, 400);
+                } else if (event.data === 'connected') {
+                    console.log('✅ Live reload ready');
+                }
+            };
+
+            eventSource.onerror = (error) => {
+                console.log('❌ Live reload disconnected, retrying...');
+                eventSource.close();
+                // Переподключаемся через 1 секунду
+                setTimeout(setupLiveReload, 1000);
+            };
+        })();
+
+        // Сохранение позиции скролла при каждом скролле
+        let scrollSaveTimeout = null;
+        window.addEventListener('scroll', () => {
+            // Используем debounce, чтобы не сохранять слишком часто
+            if (scrollSaveTimeout) {
+                clearTimeout(scrollSaveTimeout);
+            }
+            scrollSaveTimeout = setTimeout(() => {
+                sessionStorage.setItem('scrollPosition', window.scrollY.toString());
+            }, 100); // Сохраняем через 100мс после окончания скролла
+        });
+
+        // Сохранение позиции скролла перед уходом со страницы
+        window.addEventListener('beforeunload', () => {
+            sessionStorage.setItem('scrollPosition', window.scrollY.toString());
+        });
+    </script>
+</body>
+</html>
+

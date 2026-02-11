@@ -1,0 +1,230 @@
+{
+  "_meta": {
+    "_instructions": "⚠️ ВАЖНО: Этот файл является источником истины для структуры проекта",
+    "_last_updated": "2026-01-23",
+    "_purpose": "Структурированное описание архитектуры bike sharing PWA приложения",
+    "_tech_stack": "ClojureDart Frontend + Clojure Backend + Google Maps + PWA",
+    "_backend": "Clojure HTTP API на http://localhost:3000"
+  },
+  "📱 screens": {
+    "[🗺️ map-screen]": {
+      "description": "Главный экран с картой и велосипедами",
+      "file": "src/bikes/screens/map_screen.cljd",
+      "namespace": "bikes.screens.map-screen",
+      "features": [
+        "🗺️ Google Maps интеграция",
+        "📍 Маркеры велосипедов на карте (mock-bikes)",
+        "📷 Кнопка Scan QR внизу",
+        "📍 Кнопка текущего местоположения",
+        "🔍 Кнопки зума",
+        "☰ Кнопка меню"
+      ],
+      "components": [
+        "map-view - GoogleMap виджет",
+        "scan-button - кнопка сканирования",
+        "menu-button - кнопка меню",
+        "location-button - кнопка местоположения",
+        "zoom-controls - кнопки зума"
+      ]
+    },
+    "[🏠 home]": {
+      "description": "Домашний экран с приветствием",
+      "file": "src/bikes/screens/home.cljd",
+      "namespace": "bikes.screens.home",
+      "features": [
+        "🎨 Welcome card с приветствием",
+        "📱 AppBar с logo и actions",
+        "🔘 Quick Actions (Scan QR, Current Rental)",
+        "📊 Статистика (Total Rides, Total Distance)"
+      ],
+      "components": [
+        "leading - logo 🚴",
+        "profile - кнопка профиля 👤",
+        "settings - кнопка настроек ⚙️",
+        "app-bar - AppBar с actions",
+        "welcome - Welcome card",
+        "scan - кнопка Scan QR Code",
+        "current-rental - текущая аренда"
+      ]
+    },
+    "[🚴 bike-rental]": {
+      "description": "Экран аренды байка",
+      "file": "src/bikes/screens/bike_rental.cljd",
+      "namespace": "bikes.screens.bike-rental",
+      "features": [
+        "ℹ️ Bike information card",
+        "📊 Rental status (active/inactive)",
+        "▶️ Start rental button",
+        "⏹️ End rental button",
+        "📝 Instructions card",
+        "🚫 No bike selected placeholder"
+      ],
+      "components": [
+        "back - кнопка назад",
+        "bike-info - информация о байке",
+        "rental-status - статус аренды",
+        "start - кнопка начала аренды",
+        "end - кнопка завершения аренды",
+        "instructions - инструкции",
+        "no-bike-selected - placeholder"
+      ]
+    },
+    "[📷 qr-scanner]": {
+      "description": "Экран сканирования QR кода",
+      "file": "src/bikes/screens/qr_scanner.cljd",
+      "namespace": "bikes.screens.qr-scanner",
+      "features": [
+        "📸 Camera/QR scanner placeholder",
+        "🎲 Simulate QR Scan (Test)",
+        "📱 PWA Install Prompt",
+        "📝 Manual code input fallback"
+      ],
+      "components": [
+        "back - кнопка назад",
+        "camera - placeholder камеры",
+        "scan - симуляция сканирования",
+        "pwa - PWA install prompt"
+      ]
+    }
+  },
+  "🗂️ state": {
+    "[💾 app-state]": {
+      "description": "Глобальное состояние приложения (atoms)",
+      "file": "src/bikes/state/app_state.cljd",
+      "namespace": "bikes.state.app-state",
+      "atoms": [
+        "current-rental - текущая аренда",
+        "current-bike - текущий байк",
+        "user - пользователь",
+        "pwa-installed - флаг установки PWA"
+      ],
+      "functions": [
+        "set-current-bike - установить текущий байк",
+        "set-current-rental - установить аренду",
+        "clear-rental - очистить аренду и байк",
+        "set-user - установить пользователя",
+        "set-pwa-installed - установить флаг PWA"
+      ]
+    }
+  },
+  "🌐 services": {
+    "[🔌 api]": {
+      "description": "API клиент для бэкенда",
+      "file": "src/bikes/services/api.cljd",
+      "namespace": "bikes.services.api",
+      "baseUrl": "https://api.bikes.example.com",
+      "functions": [
+        "request(method, endpoint, data) - базовый HTTP запрос",
+        "get-bike-by-qr(qr-code) - получить байк по QR",
+        "start-rental(bike-id, user-id) - начать аренду",
+        "end-rental(rental-id) - завершить аренду",
+        "get-current-rental(user-id) - получить текущую аренду",
+        "authenticate(phone-number) - аутентификация"
+      ],
+      "status": "TODO: требуется реализация через http пакет"
+    },
+    "[🔵 bluetooth]": {
+      "description": "Bluetooth сервис для управления байком",
+      "file": "src/bikes/services/bluetooth.cljd",
+      "namespace": "bikes.services.bluetooth",
+      "status": "TODO: требуется реализация"
+    }
+  },
+  "🎨 components": {
+    "[📱 pwa-install]": {
+      "description": "PWA Installation компонент",
+      "file": "src/bikes/components/pwa_install.cljd",
+      "namespace": "bikes.components.pwa-install",
+      "functions": [
+        "install-prompt - PWA install prompt"
+      ]
+    }
+  },
+  "🔄 routing": {
+    "routes": {
+      "/": "map-screen (default)",
+      "/home": "home-screen",
+      "/qr-scanner": "qr-scanner-screen",
+      "/rental": "bike-rental-screen"
+    },
+    "preview_mode": "?component=<component-name> для превью отдельных компонентов"
+  },
+  "📦 mock_data": {
+    "bikes": [
+      {
+        "id": "bike-1",
+        "lat": 41.7151,
+        "lng": 44.8271,
+        "battery": 85,
+        "price": 2.5
+      },
+      {
+        "id": "bike-2",
+        "lat": 41.7161,
+        "lng": 44.8281,
+        "battery": 60,
+        "price": 2.5
+      },
+      {
+        "id": "bike-3",
+        "lat": 41.7141,
+        "lng": 44.8261,
+        "battery": 95,
+        "price": 2.5
+      }
+    ],
+    "location": "Тбилиси, Грузия (41.7151, 44.8271)"
+  },
+  "🔄 user_flow": {
+    "1. Главный экран": "map-screen → показать карту с байками",
+    "2. Сканирование": "Scan button → qr-scanner → симулировать QR → установить current-bike",
+    "3. Начало аренды": "bike-rental → Start Rental → установить current-rental",
+    "4. Активная аренда": "current-rental в state → показать в home/current-rental",
+    "5. Завершение": "End Rental → clear-rental → показать итог"
+  },
+  "🔧 backend": {
+    "[🚀 Clojure API]": {
+      "description": "HTTP API сервер на Clojure",
+      "file": "backend/src/bikes_api/simple.clj",
+      "port": 3000,
+      "url": "http://localhost:3000",
+      "tech": ["Clojure", "http-kit", "cheshire"],
+      "endpoints": [
+        "GET /api/bikes - список велосипедов",
+        "GET /api/bikes/:id - велосипед по ID",
+        "POST /api/rentals/start - начать аренду",
+        "GET /api/rentals/current - текущая аренда"
+      ],
+      "data": {
+        "bikes": 3,
+        "location": "Тбилиси (41.7151, 44.8271)"
+      },
+      "start_command": "cd backend && clj -M -m bikes-api.simple"
+    }
+  },
+  "🎯 mvp_status": {
+    "completed": [
+      "✅ 4 основных экрана (map, home, qr-scanner, bike-rental)",
+      "✅ Google Maps интеграция",
+      "✅ Routing с URL параметрами",
+      "✅ Global state (atoms)",
+      "✅ Mock данные велосипедов",
+      "✅ PWA install prompt",
+      "✅ Preview mode для компонентов",
+      "✅ Clojure HTTP API backend",
+      "✅ Flutter app интеграция с Clojure API"
+    ],
+    "pending": [
+      "⏳ Bluetooth интеграция",
+      "⏳ Реальное сканирование QR",
+      "⏳ Экран аутентификации",
+      "⏳ History экран",
+      "⏳ Settings экран"
+    ]
+  },
+  "🚀 preview_components": {
+    "home": ["app-bar", "navbar", "welcome", "welcomeCard", "leading", "logo", "profile", "settings", "scan", "scanQR", "current-rental"],
+    "qr-scanner": ["back", "camera", "pwa"],
+    "bike-rental": ["bike-info", "rental-status", "start", "end", "instructions", "no-bike-selected"]
+  }
+}

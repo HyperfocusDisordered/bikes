@@ -1,0 +1,10 @@
+{
+  "🏠 home": ["appState", "get-current-rental"],
+  "📷 qrScanner": ["get-bike-by-qr", "scan-for-devices", "validate-qr-code"],
+  "🚴 bikeRental": ["current-rental", "current-bike", "unlock-bike", "lock-bike", "end-rental"],
+  "get-bike-by-qr": ["set-current-bike"],
+  "start-rental": ["set-current-rental"],
+  "unlock-bike": ["connect-to-device"],
+  "lock-bike": ["connect-to-device"],
+  "authenticate": ["set-user"]
+}

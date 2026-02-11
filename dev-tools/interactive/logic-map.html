@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bikes - Logic Map</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #000000;
+            color: #ffffff;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+            background: radial-gradient(ellipse at center, #1a1a1a 0%, #000000 100%);
+        }
+
+        .map-panel {
+            flex: 1;
+            padding: 30px;
+            overflow: auto;
+            position: relative;
+        }
+
+        .map-title {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            color: #4ec9b0;
+            text-shadow: 0 0 20px rgba(78, 201, 176, 0.5);
+        }
+
+        .search-box {
+            width: 100%;
+            max-width: 500px;
+            padding: 12px 16px;
+            margin-bottom: 30px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(78, 201, 176, 0.3);
+            border-radius: 8px;
+            color: #ffffff;
+            font-size: 14px;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #4ec9b0;
+            box-shadow: 0 0 15px rgba(78, 201, 176, 0.3);
+        }
+
+        /* Логические блоки */
+        .logic-section {
+            margin-bottom: 40px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            color: #4ec9b0;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid rgba(78, 201, 176, 0.3);
+        }
+
+        .logic-node {
+            background: rgba(255, 255, 255, 0.03);
+            border: 2px solid rgba(78, 201, 176, 0.2);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .logic-node:hover {
+            border-color: currentColor;
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.5);
+            transform: translateX(5px);
+        }
+
+        .logic-node.screen {
+            border-color: rgba(78, 201, 176, 0.4);
+            background: linear-gradient(135deg, rgba(78, 201, 176, 0.1) 0%, rgba(78, 201, 176, 0.02) 100%);
+        }
+
+        .logic-node.component {
+            border-color: rgba(220, 220, 170, 0.4);
+            background: linear-gradient(135deg, rgba(220, 220, 170, 0.1) 0%, rgba(220, 220, 170, 0.02) 100%);
+        }
+
+        .logic-node.service {
+            border-color: rgba(206, 145, 120, 0.4);
+            background: linear-gradient(135deg, rgba(206, 145, 120, 0.1) 0%, rgba(206, 145, 120, 0.02) 100%);
+        }
+
+        .logic-node.state {
+            border-color: rgba(197, 134, 192, 0.4);
+            background: linear-gradient(135deg, rgba(197, 134, 192, 0.1) 0%, rgba(197, 134, 192, 0.02) 100%);
+        }
+
+        .node-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .node-icon {
+            font-size: 36px;
+            filter: drop-shadow(0 0 10px currentColor);
+        }
+
+        .node-title {
+            font-size: 22px;
+            font-weight: 600;
+            color: currentColor;
+        }
+
+        .node-path {
+            font-size: 12px;
+            color: #858585;
+            font-family: monospace;
+            margin-left: auto;
+        }
+
+        .node-functions {
+            margin-top: 20px;
+        }
+
+        .function-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-left: 3px solid currentColor;
+            padding: 12px 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .function-item:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateX(5px);
+        }
+
+        .function-name {
+            font-size: 16px;
+            font-weight: 500;
+            color: #dcdcaa;
+            margin-bottom: 5px;
+        }
+
+        .function-details {
+            font-size: 12px;
+            color: #858585;
+            margin-top: 8px;
+        }
+
+        .function-calls {
+            margin-top: 8px;
+            padding-left: 15px;
+        }
+
+        .call-item {
+            font-size: 11px;
+            color: #6a9955;
+            margin: 3px 0;
+            font-family: monospace;
+        }
+
+        .call-item::before {
+            content: '→ ';
+            color: #4ec9b0;
+        }
+
+        .dependencies {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .dependency-tag {
+            display: inline-block;
+            padding: 4px 10px;
+            background: rgba(78, 201, 176, 0.2);
+            border: 1px solid rgba(78, 201, 176, 0.4);
+            border-radius: 6px;
+            font-size: 11px;
+            margin: 3px 5px 3px 0;
+            color: #4ec9b0;
+        }
+
+        .code-panel {
+            width: 50%;
+            background: rgba(0, 0, 0, 0.5);
+            border-left: 1px solid rgba(78, 201, 176, 0.2);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .code-header {
+            padding: 20px 30px;
+            background: rgba(0, 0, 0, 0.3);
+            border-bottom: 1px solid rgba(78, 201, 176, 0.2);
+        }
+
+        .code-title {
+            font-size: 20px;
+            color: #4ec9b0;
+            margin-bottom: 5px;
+        }
+
+        .code-path {
+            font-size: 12px;
+            color: #858585;
+            font-family: monospace;
+        }
+
+        .code-content {
+            flex: 1;
+            padding: 30px;
+            overflow-y: auto;
+        }
+
+        .code-content pre {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            border: 1px solid rgba(78, 201, 176, 0.2);
+        }
+
+        .code-content code {
+            color: #d4d4d4;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .keyword { color: #569cd6; }
+        .string { color: #ce9178; }
+        .function { color: #dcdcaa; }
+        .comment { color: #6a9955; }
+        .number { color: #b5cea8; }
+
+        .empty-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #858585;
+            font-size: 16px;
+            text-align: center;
+        }
+
+        .ui-preview-mini {
+            width: 120px;
+            height: 80px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #1e1e1e 0%, #2d2d30 100%);
+            border: 2px solid currentColor;
+            position: relative;
+            overflow: hidden;
+            flex-shrink: 0;
+            margin-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="map-panel">
+            <h1 class="map-title">🗺️ Logic Map - Полная карта проекта</h1>
+            <input type="text" class="search-box" placeholder="🔍 Поиск по логике..." id="searchBox">
+            <div id="logicMap"></div>
+        </div>
+
+        <div class="code-panel">
+            <div class="code-header">
+                <div class="code-title" id="codeTitle">Выберите элемент</div>
+                <div class="code-path" id="codePath"></div>
+            </div>
+            <div class="code-content" id="codeContent">
+                <div class="empty-state">
+                    Выберите элемент на карте<br>для просмотра кода
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Полная логическая карта проекта
+        const logicMap = {
+            entry: {
+                type: 'entry',
+                name: 'main',
+                path: 'src/bikes/core.cljd',
+                icon: '🚀',
+                functions: [
+                    {
+                        name: 'main',
+                        line: 6,
+                        calls: ['app/app'],
+                        description: 'Точка входа приложения'
+                    }
+                ]
+            },
+            app: {
+                type: 'app',
+                name: 'App',
+                path: 'src/bikes/app.cljd',
+                icon: '📱',
+                functions: [
+                    {
+                        name: 'app',
+                        line: 9,
+                        calls: [
+                            'screens/home/home-screen',
+                            'screens/qr-scanner/qr-scanner-screen',
+                            'screens/bike-rental/bike-rental-screen'
+                        ],
+                        description: 'Главное приложение с навигацией',
+                        routes: {
+                            '/': 'home-screen',
+                            '/qr-scanner': 'qr-scanner-screen',
+                            '/rental': 'bike-rental-screen'
+                        }
+                    }
+                ],
+                dependencies: ['screens/home', 'screens/qr-scanner', 'screens/bike-rental']
+            },
+            screens: {
+                home: {
+                    type: 'screen',
+                    name: 'Home Screen',
+                    path: 'src/bikes/screens/home.cljd',
+                    icon: '🏠',
+                    functions: [
+                        {
+                            name: 'home-screen',
+                            line: 7,
+                            reads: ['state/current-rental'],
+                            calls: [],
+                            description: 'Главный экран приложения',
+                            ui: {
+                                components: ['Scaffold', 'AppBar', 'Card', 'ListTile'],
+                                sections: ['Welcome Card', 'Quick Actions', 'Stats']
+                            }
+                        }
+                    ],
+                    dependencies: ['state/app-state'],
+                    ui: true
+                },
+                qrScanner: {
+                    type: 'screen',
+                    name: 'QR Scanner',
+                    path: 'src/bikes/screens/qr_scanner.cljd',
+                    icon: '📷',
+                    functions: [
+                        {
+                            name: 'qr-scanner-screen',
+                            line: 8,
+                            writes: ['state/current-bike'],
+                            calls: ['state/set-current-bike', 'components/pwa-install/install-prompt'],
+                            description: 'Экран сканирования QR кода',
+                            ui: {
+                                components: ['Scaffold', 'AppBar', 'Container', 'ElevatedButton'],
+                                sections: ['QR Scanner Area', 'Instructions', 'PWA Install Prompt']
+                            }
+                        }
+                    ],
+                    dependencies: ['state/app-state', 'components/pwa-install'],
+                    ui: true
+                },
+                bikeRental: {
+                    type: 'screen',
+                    name: 'Bike Rental',
+                    path: 'src/bikes/screens/bike_rental.cljd',
+                    icon: '🚴',
+                    functions: [
+                        {
+                            name: 'bike-rental-screen',
+                            line: 7,
+                            reads: ['state/current-bike', 'state/current-rental'],
+                            writes: ['state/current-rental'],
+                            calls: [
+                                'state/set-current-rental',
+                                'state/clear-rental'
+                            ],
+                            description: 'Экран управления арендой',
+                            ui: {
+                                components: ['Scaffold', 'AppBar', 'Card', 'ElevatedButton'],
+                                sections: ['Bike Info', 'Rental Status', 'Action Buttons', 'Instructions']
+                            }
+                        }
+                    ],
+                    dependencies: ['state/app-state'],
+                    ui: true
+                }
+            },
+            components: {
+                pwaInstall: {
+                    type: 'component',
+                    name: 'PWA Install',
+                    path: 'src/bikes/components/pwa_install.cljd',
+                    icon: '📲',
+                    functions: [
+                        {
+                            name: 'install-prompt',
+                            line: 5,
+                            calls: [],
+                            description: 'Промпт установки PWA',
+                            ui: {
+                                components: ['Card', 'TextButton', 'ElevatedButton'],
+                                sections: ['Title', 'Description', 'Action Buttons']
+                            }
+                        }
+                    ],
+                    dependencies: [],
+                    ui: true
+                }
+            },
+            services: {
+                api: {
+                    type: 'service',
+                    name: 'API Client',
+                    path: 'src/bikes/services/api.cljd',
+                    icon: '🌐',
+                    functions: [
+                        {
+                            name: 'request',
+                            line: 7,
+                            calls: [],
+                            description: 'Базовый HTTP запрос',
+                            params: ['method', 'endpoint', 'data']
+                        },
+                        {
+                            name: 'get-bike-by-qr',
+                            line: 14,
+                            calls: ['request'],
+                            description: 'Получить байк по QR коду',
+                            endpoint: 'GET /bikes/{qr-code}',
+                            usedBy: ['screens/qr-scanner']
+                        },
+                        {
+                            name: 'start-rental',
+                            line: 19,
+                            calls: ['request'],
+                            description: 'Начать аренду',
+                            endpoint: 'POST /rentals/start',
+                            usedBy: ['screens/bike-rental']
+                        },
+                        {
+                            name: 'end-rental',
+                            line: 24,
+                            calls: ['request'],
+                            description: 'Завершить аренду',
+                            endpoint: 'POST /rentals/{id}/end',
+                            usedBy: ['screens/bike-rental']
+                        },
+                        {
+                            name: 'get-current-rental',
+                            line: 29,
+                            calls: ['request'],
+                            description: 'Получить текущую аренду',
+                            endpoint: 'GET /rentals/current',
+                            usedBy: ['screens/home']
+                        },
+                        {
+                            name: 'authenticate',
+                            line: 34,
+                            calls: ['request'],
+                            description: 'Аутентификация',
+                            endpoint: 'POST /auth/login',
+                            usedBy: []
+                        }
+                    ],
+                    dependencies: [],
+                    baseUrl: 'https://api.bikes.example.com'
+                },
+                bluetooth: {
+                    type: 'service',
+                    name: 'Bluetooth',
+                    path: 'src/bikes/services/bluetooth.cljd',
+                    icon: '📡',
+                    functions: [
+                        {
+                            name: 'scan-for-devices',
+                            line: 23,
+                            calls: [],
+                            description: 'Сканировать BLE устройства'
+                        },
+                        {
+                            name: 'connect-to-device',
+                            line: 29,
+                            calls: [],
+                            description: 'Подключиться к устройству',
+                            params: ['device-id']
+                        },
+                        {
+                            name: 'unlock-bike',
+                            line: 35,
+                            calls: [],
+                            description: 'Разблокировать байк',
+                            command: '0x02',
+                            params: ['device-id']
+                        },
+                        {
+                            name: 'lock-bike',
+                            line: 41,
+                            calls: [],
+                            description: 'Заблокировать байк',
+                            command: '0x01',
+                            params: ['device-id']
+                        },
+                        {
+                            name: 'get-bike-status',
+                            line: 47,
+                            calls: [],
+                            description: 'Получить статус блокировки',
+                            params: ['device-id']
+                        },
+                        {
+                            name: 'get-battery-level',
+                            line: 53,
+                            calls: [],
+                            description: 'Получить уровень батареи',
+                            params: ['device-id']
+                        },
+                        {
+                            name: 'subscribe-to-status',
+                            line: 59,
+                            calls: [],
+                            description: 'Подписаться на обновления статуса',
+                            params: ['device-id', 'callback']
+                        }
+                    ],
+                    dependencies: [],
+                    serviceUuid: '0000ff00-0000-1000-8000-00805f9b34fb'
+                }
+            },
+            state: {
+                appState: {
+                    type: 'state',
+                    name: 'App State',
+                    path: 'src/bikes/state/app_state.cljd',
+                    icon: '💾',
+                    atoms: [
+                        {
+                            name: 'current-rental',
+                            line: 4,
+                            type: 'atom',
+                            readBy: ['screens/home', 'screens/bike-rental'],
+                            writtenBy: ['screens/bike-rental'],
+                            structure: '{:id uuid :start-time timestamp :duration minutes}'
+                        },
+                        {
+                            name: 'current-bike',
+                            line: 5,
+                            type: 'atom',
+                            readBy: ['screens/bike-rental'],
+                            writtenBy: ['screens/qr-scanner'],
+                            structure: '{:id string :location string :battery number}'
+                        },
+                        {
+                            name: 'user',
+                            line: 6,
+                            type: 'atom',
+                            readBy: [],
+                            writtenBy: []
+                        },
+                        {
+                            name: 'pwa-installed',
+                            line: 7,
+                            type: 'atom',
+                            readBy: [],
+                            writtenBy: []
+                        }
+                    ],
+                    functions: [
+                        {
+                            name: 'set-current-bike',
+                            line: 9,
+                            writes: ['current-bike'],
+                            calledBy: ['screens/qr-scanner']
+                        },
+                        {
+                            name: 'set-current-rental',
+                            line: 12,
+                            writes: ['current-rental'],
+                            calledBy: ['screens/bike-rental']
+                        },
+                        {
+                            name: 'clear-rental',
+                            line: 15,
+                            writes: ['current-rental', 'current-bike'],
+                            calledBy: ['screens/bike-rental']
+                        },
+                        {
+                            name: 'set-user',
+                            line: 19,
+                            writes: ['user'],
+                            calledBy: []
+                        },
+                        {
+                            name: 'set-pwa-installed',
+                            line: 22,
+                            writes: ['pwa-installed'],
+                            calledBy: []
+                        }
+                    ],
+                    dependencies: []
+                }
+            },
+            utils: {
+                helpers: {
+                    type: 'util',
+                    name: 'Helpers',
+                    path: 'src/bikes/utils/helpers.cljd',
+                    icon: '🔧',
+                    functions: [
+                        {
+                            name: 'format-duration',
+                            line: 4,
+                            description: 'Форматировать длительность',
+                            usedBy: ['screens/bike-rental']
+                        },
+                        {
+                            name: 'format-time',
+                            line: 15,
+                            description: 'Форматировать время',
+                            usedBy: ['screens/bike-rental']
+                        },
+                        {
+                            name: 'generate-id',
+                            line: 21,
+                            description: 'Генерировать UUID'
+                        },
+                        {
+                            name: 'validate-qr-code',
+                            line: 26,
+                            description: 'Валидировать QR код',
+                            usedBy: ['screens/qr-scanner']
+                        }
+                    ],
+                    dependencies: []
+                }
+            }
+        };
+
+        // Загрузка файла
+        async function loadFile(path) {
+            const pathsToTry = [`/${path}`, path, `../../${path}`];
+            for (const tryPath of pathsToTry) {
+                try {
+                    const response = await fetch(tryPath);
+                    if (response.ok) {
+                        const text = await response.text();
+                        if (text && text.length > 0 && !text.trim().startsWith('<!DOCTYPE')) {
+                            return text;
+                        }
+                    }
+                } catch (e) {
+                    continue;
+                }
+            }
+            return null;
+        }
+
+        // Рендеринг логической карты
+        function renderLogicMap() {
+            const container = document.getElementById('logicMap');
+            container.innerHTML = '';
+
+            // Entry Point
+            renderSection('🚀 Entry Point', [logicMap.entry], container);
+
+            // App
+            renderSection('📱 Application', [logicMap.app], container);
+
+            // Screens
+            renderSection('📱 Screens', Object.values(logicMap.screens), container);
+
+            // Components
+            renderSection('🧩 Components', Object.values(logicMap.components), container);
+
+            // Services
+            renderSection('🔧 Services', Object.values(logicMap.services), container);
+
+            // State
+            renderSection('💾 State Management', Object.values(logicMap.state), container);
+
+            // Utils
+            renderSection('🛠️ Utils', Object.values(logicMap.utils), container);
+        }
+
+        function renderSection(title, items, container) {
+            const section = document.createElement('div');
+            section.className = 'logic-section';
+            
+            const titleEl = document.createElement('div');
+            titleEl.className = 'section-title';
+            titleEl.textContent = title;
+            section.appendChild(titleEl);
+
+            items.forEach(item => {
+                const node = renderLogicNode(item);
+                section.appendChild(node);
+            });
+
+            container.appendChild(section);
+        }
+
+        function renderLogicNode(item) {
+            const node = document.createElement('div');
+            node.className = `logic-node ${item.type}`;
+            
+            const header = document.createElement('div');
+            header.className = 'node-header';
+            header.innerHTML = `
+                <div class="node-icon">${item.icon}</div>
+                <div class="node-title">${item.name}</div>
+                <div class="node-path">${item.path}</div>
+            `;
+            node.appendChild(header);
+
+            // Функции
+            if (item.functions) {
+                const functionsDiv = document.createElement('div');
+                functionsDiv.className = 'node-functions';
+                
+                item.functions.forEach(func => {
+                    const funcDiv = document.createElement('div');
+                    funcDiv.className = 'function-item';
+                    
+                    let callsHtml = '';
+                    if (func.calls && func.calls.length > 0) {
+                        callsHtml = `<div class="function-calls">${func.calls.map(c => `<div class="call-item">${c}</div>`).join('')}</div>`;
+                    }
+                    
+                    let readsHtml = '';
+                    if (func.reads && func.reads.length > 0) {
+                        readsHtml = `<div class="function-calls"><span style="color: #4ec9b0;">Reads:</span> ${func.reads.map(r => `<div class="call-item">${r}</div>`).join('')}</div>`;
+                    }
+                    
+                    let writesHtml = '';
+                    if (func.writes && func.writes.length > 0) {
+                        writesHtml = `<div class="function-calls"><span style="color: #dcdcaa;">Writes:</span> ${func.writes.map(w => `<div class="call-item">${w}</div>`).join('')}</div>`;
+                    }
+
+                    funcDiv.innerHTML = `
+                        <div class="function-name">⚡ ${func.name}()</div>
+                        <div class="function-details">${func.description || ''}</div>
+                        ${callsHtml}
+                        ${readsHtml}
+                        ${writesHtml}
+                    `;
+                    
+                    funcDiv.addEventListener('click', () => selectFunction(item, func));
+                    functionsDiv.appendChild(funcDiv);
+                });
+                
+                node.appendChild(functionsDiv);
+            }
+
+            // Atoms (для state)
+            if (item.atoms) {
+                const atomsDiv = document.createElement('div');
+                atomsDiv.className = 'node-functions';
+                atomsDiv.innerHTML = '<div style="color: #c586c0; margin-bottom: 10px;">💾 Atoms:</div>';
+                
+                item.atoms.forEach(atom => {
+                    const atomDiv = document.createElement('div');
+                    atomDiv.className = 'function-item';
+                    atomDiv.style.borderLeftColor = '#c586c0';
+                    
+                    let readByHtml = atom.readBy && atom.readBy.length > 0 
+                        ? `<div class="function-calls"><span style="color: #4ec9b0;">Read by:</span> ${atom.readBy.map(r => `<div class="call-item">${r}</div>`).join('')}</div>` : '';
+                    let writtenByHtml = atom.writtenBy && atom.writtenBy.length > 0 
+                        ? `<div class="function-calls"><span style="color: #dcdcaa;">Written by:</span> ${atom.writtenBy.map(w => `<div class="call-item">${w}</div>`).join('')}</div>` : '';
+                    
+                    atomDiv.innerHTML = `
+                        <div class="function-name">💾 ${atom.name}</div>
+                        <div class="function-details">${atom.structure || ''}</div>
+                        ${readByHtml}
+                        ${writtenByHtml}
+                    `;
+                    atomsDiv.appendChild(atomDiv);
+                });
+                
+                node.appendChild(atomsDiv);
+            }
+
+            // Зависимости
+            if (item.dependencies && item.dependencies.length > 0) {
+                const depsDiv = document.createElement('div');
+                depsDiv.className = 'dependencies';
+                depsDiv.innerHTML = '<div style="color: #858585; margin-bottom: 8px; font-size: 12px;">Dependencies:</div>';
+                item.dependencies.forEach(dep => {
+                    const tag = document.createElement('span');
+                    tag.className = 'dependency-tag';
+                    tag.textContent = dep;
+                    depsDiv.appendChild(tag);
+                });
+                node.appendChild(depsDiv);
+            }
+
+            // UI Preview
+            if (item.ui) {
+                const uiDiv = document.createElement('div');
+                uiDiv.style.marginTop = '15px';
+                uiDiv.style.paddingTop = '15px';
+                uiDiv.style.borderTop = '1px solid rgba(255, 255, 255, 0.1)';
+                uiDiv.innerHTML = `
+                    <div style="color: #858585; margin-bottom: 8px; font-size: 12px;">UI Components:</div>
+                    <div style="font-size: 11px; color: #dcdcaa;">
+                        ${item.functions[0]?.ui?.components?.join(', ') || 'N/A'}
+                    </div>
+                `;
+                node.appendChild(uiDiv);
+            }
+
+            node.addEventListener('click', (e) => {
+                if (!e.target.closest('.function-item')) {
+                    selectItem(item);
+                }
+            });
+
+            return node;
+        }
+
+        async function selectItem(item) {
+            document.getElementById('codeTitle').textContent = item.name;
+            document.getElementById('codePath').textContent = item.path;
+            
+            if (item.path) {
+                const code = await loadFile(item.path);
+                if (code) {
+                    displayCode(code, item.path);
+                } else {
+                    displayCode(`// Файл: ${item.path}\n// Загрузка...`, item.path);
+                }
+            }
+        }
+
+        async function selectFunction(item, func) {
+            document.getElementById('codeTitle').textContent = `${func.name}()`;
+            document.getElementById('codePath').textContent = `${item.path}:${func.line}`;
+            
+            if (item.path) {
+                const code = await loadFile(item.path);
+                if (code) {
+                    const lines = code.split('\n');
+                    const startLine = Math.max(0, func.line - 1);
+                    const endLine = Math.min(lines.length, func.line + 30);
+                    const functionCode = lines.slice(startLine, endLine).join('\n');
+                    displayCode(functionCode, item.path, func.line);
+                }
+            }
+        }
+
+        function displayCode(code, path, highlightLine = null) {
+            const container = document.getElementById('codeContent');
+            const highlighted = highlightClojure(code);
+            container.innerHTML = `<pre><code>${highlighted}</code></pre>`;
+        }
+
+        function highlightClojure(code) {
+            return code
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/(\(defn\s+[^\s]+)/g, '<span class="function">$1</span>')
+                .replace(/(\(def\s+[^\s]+)/g, '<span class="keyword">$1</span>')
+                .replace(/(\(ns\s+[^\s]+)/g, '<span class="keyword">$1</span>')
+                .replace(/(:require|:as|:keys)/g, '<span class="keyword">$1</span>')
+                .replace(/"([^"]*)"/g, '<span class="string">"$1"</span>')
+                .replace(/(;;[^\n]*)/g, '<span class="comment">$1</span>')
+                .replace(/\b(\d+)\b/g, '<span class="number">$1</span>');
+        }
+
+        // Поиск
+        document.getElementById('searchBox').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            document.querySelectorAll('.logic-node').forEach(node => {
+                const text = node.textContent.toLowerCase();
+                node.style.display = text.includes(query) ? '' : 'none';
+            });
+        });
+
+        // Инициализация
+        renderLogicMap();
+    </script>
+</body>
+</html>
+
