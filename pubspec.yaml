@@ -18,14 +18,17 @@ dependencies:
     sdk: flutter
   
   # QR Code scanner
-  qr_code_scanner: ^1.0.1
+  mobile_scanner: ^5.2.3
   
   # Bluetooth
   flutter_blue_plus: ^1.30.0
   
   # Location
   geolocator: ^11.0.0
-  
+
+  # Maps
+  google_maps_flutter: ^2.5.0
+
   # HTTP requests
   http: ^1.1.0
   

@@ -4,6 +4,110 @@
             [flutter-cljd.material :as material]
             [bikes.state.app-state :as state]))
 
+;; UI Components
+(defn back []
+  "Back button"
+  (material/icon-button
+   {:icon (material/icons/arrow-back)
+    :on-pressed #(js/console.log "Back")}))
+
+(defn bike-info [bike]
+  "Bike information card"
+  (material/card
+   {:child (ui/padding
+           {:padding (ui/edge-insets-all 16)}
+           (ui/column
+            {:spacing 12}
+            (ui/text (str "Bike #" (:id bike))
+                    {:style (ui/text-style {:size 24 :weight ui/font-weight-bold})})
+            (ui/row
+             {:spacing 8}
+             (ui/icon material/icons/location-on {:size 16 :color material/grey-600})
+             (ui/text (:location bike)
+                     {:style (ui/text-style {:size 14 :color material/grey-600})}))
+            (ui/row
+             {:spacing 8}
+             (ui/icon material/icons/battery-full {:size 16 :color material/green})
+             (ui/text (str "Battery: " (:battery bike) "%")
+                     {:style (ui/text-style {:size 14 :color material/grey-600})}))))}))
+
+(defn rental-status [rental]
+  "Active rental status card"
+  (material/card
+   {:color material/green-50
+    :child (ui/padding
+           {:padding (ui/edge-insets-all 16)}
+           (ui/column
+            {:spacing 8}
+            (ui/text "Rental Active"
+                    {:style (ui/text-style {:size 18 :weight ui/font-weight-bold :color material/green})})
+            (ui/text (str "Started: " (:start-time rental))
+                    {:style (ui/text-style {:size 14 :color material/grey-700})})
+            (ui/text (str "Duration: " (:duration rental) " min")
+                    {:style (ui/text-style {:size 14 :color material/grey-700})})))}))
+
+(defn end [loading]
+  "End rental button"
+  (material/elevated-button
+   {:on-pressed #(do
+                  (reset! loading true)
+                  (js/setTimeout
+                   (fn []
+                     (state/clear-rental)
+                     (reset! loading false))
+                   1000))
+    :style (material/elevated-button-style
+           {:backgroundColor material/red})
+    :child (ui/text "End Rental"
+                   {:style (ui/text-style {:color material/white})})}))
+
+(defn start [loading]
+  "Start rental button"
+  (material/elevated-button
+   {:on-pressed #(do
+                  (reset! loading true)
+                  (js/setTimeout
+                   (fn []
+                     (state/set-current-rental
+                      {:id (random-uuid)
+                       :start-time (js/Date.now)
+                       :duration 0})
+                     (reset! loading false))
+                   1000))
+    :style (material/elevated-button-style
+           {:backgroundColor material/green})
+    :child (ui/text "Start Rental"
+                   {:style (ui/text-style {:color material/white})})}))
+
+(defn instructions []
+  "Instructions card"
+  (material/card
+   {:child (ui/padding
+           {:padding (ui/edge-insets-all 16)}
+           (ui/column
+            {:spacing 8}
+            (ui/text "Instructions"
+                    {:style (ui/text-style {:size 16 :weight ui/font-weight-bold})})
+            (ui/text "• Scan QR code to unlock the bike"
+                    {:style (ui/text-style {:size 14})})
+            (ui/text "• Use the app to lock when finished"
+                    {:style (ui/text-style {:size 14})})
+            (ui/text "• Return bike to designated area"
+                    {:style (ui/text-style {:size 14})})))}))
+
+(defn no-bike-selected []
+  "No bike selected placeholder"
+  (ui/center
+   (ui/column
+    {:spacing 16
+     :main-axis-alignment ui/main-axis-alignment-center}
+    (ui/icon material/icons/directions-bike {:size 64 :color material/grey-400})
+    (ui/text "No bike selected"
+            {:style (ui/text-style {:size 18 :color material/grey-600})})
+    (material/elevated-button
+     {:on-pressed #(js/console.log "Scan QR")
+      :child (ui/text "Scan QR Code")}))))
+
 (defn bike-rental-screen []
   (let [bike @state/current-bike
         rental @state/current-rental
@@ -12,110 +116,70 @@
      {:app-bar (material/app-bar
                 {:title (ui/text "Bike Rental")
                  :backgroundColor material/blue
-                 :leading (material/icon-button
-                          {:icon (material/icons/arrow-back)
-                           :on-pressed #(js/console.log "Back")})})
+                 :leading (back)})
       :body (if bike
               (ui/padding
                {:padding (ui/edge-insets-all 16)}
                (ui/column
                 {:spacing 24}
-                
+
                 ;; Bike Info Card
-                (material/card
-                 {:child (ui/padding
-                         {:padding (ui/edge-insets-all 16)}
-                         (ui/column
-                          {:spacing 12}
-                          (ui/text (str "Bike #" (:id bike))
-                                  {:style (ui/text-style {:size 24 :weight ui/font-weight-bold})})
-                          (ui/row
-                           {:spacing 8}
-                           (ui/icon material/icons/location-on {:size 16 :color material/grey-600})
-                           (ui/text (:location bike)
-                                   {:style (ui/text-style {:size 14 :color material/grey-600})}))
-                          (ui/row
-                           {:spacing 8}
-                           (ui/icon material/icons/battery-full {:size 16 :color material/green})
-                           (ui/text (str "Battery: " (:battery bike) "%")
-                                   {:style (ui/text-style {:size 14 :color material/grey-600})}))))})
-                
+                (bike-info bike)
+
                 ;; Rental Status
                 (if rental
-                  (material/card
-                   {:color material/green-50
-                    :child (ui/padding
-                           {:padding (ui/edge-insets-all 16)}
-                           (ui/column
-                            {:spacing 8}
-                            (ui/text "Rental Active"
-                                    {:style (ui/text-style {:size 18 :weight ui/font-weight-bold :color material/green})})
-                            (ui/text (str "Started: " (:start-time rental))
-                                    {:style (ui/text-style {:size 14 :color material/grey-700})})
-                            (ui/text (str "Duration: " (:duration rental) " min")
-                                    {:style (ui/text-style {:size 14 :color material/grey-700})})))})
+                  (rental-status rental)
                   (ui/container))
-                
+
                 ;; Action Buttons
                 (ui/column
                  {:spacing 12}
                  (if rental
-                   (material/elevated-button
-                    {:on-pressed #(do
-                                    (reset! loading true)
-                                    (js/setTimeout
-                                     (fn []
-                                       (state/clear-rental)
-                                       (reset! loading false))
-                                     1000))
-                     :style (material/elevated-button-style
-                            {:backgroundColor material/red})
-                     :child (ui/text "End Rental"
-                                    {:style (ui/text-style {:color material/white})})})
-                   (material/elevated-button
-                    {:on-pressed #(do
-                                    (reset! loading true)
-                                    (js/setTimeout
-                                     (fn []
-                                       (state/set-current-rental
-                                        {:id (random-uuid)
-                                         :start-time (js/Date.now)
-                                         :duration 0})
-                                       (reset! loading false))
-                                     1000))
-                     :style (material/elevated-button-style
-                            {:backgroundColor material/green})
-                     :child (ui/text "Start Rental"
-                                    {:style (ui/text-style {:color material/white})})}))
-                 
+                   (end loading)
+                   (start loading))
+
                  (when @loading
                    (ui/center
-                    (material/circular-progress-indicator)))))
-                
+                    (material/circular-progress-indicator))))
+
                 ;; Instructions
-                (material/card
-                 {:child (ui/padding
-                         {:padding (ui/edge-insets-all 16)}
-                         (ui/column
-                          {:spacing 8}
-                          (ui/text "Instructions"
-                                  {:style (ui/text-style {:size 16 :weight ui/font-weight-bold})})
-                          (ui/text "• Scan QR code to unlock the bike"
-                                  {:style (ui/text-style {:size 14})})
-                          (ui/text "• Use the app to lock when finished"
-                                  {:style (ui/text-style {:size 14})})
-                          (ui/text "• Return bike to designated area"
-                                  {:style (ui/text-style {:size 14})})))))))
-              
+                (instructions)))
+
               ;; No bike selected
-              (ui/center
-               (ui/column
-                {:spacing 16
-                 :main-axis-alignment ui/main-axis-alignment-center}
-                (ui/icon material/icons/directions-bike {:size 64 :color material/grey-400})
-                (ui/text "No bike selected"
-                        {:style (ui/text-style {:size 18 :color material/grey-600})})
-                (material/elevated-button
-                 {:on-pressed #(js/console.log "Scan QR")
-                  :child (ui/text "Scan QR Code")}))))})))
+              (no-bike-selected))})))
+
+;; Preview functions with mocks
+(defn back-preview []
+  "Preview: Back button"
+  (back))
+
+(defn bike-info-preview []
+  "Preview: Bike information card with mock data"
+  (bike-info {:id "BIKE-1234"
+              :location "Central Park, near entrance"
+              :battery 85}))
+
+(defn rental-status-preview []
+  "Preview: Active rental status card with mock data"
+  (rental-status {:id "RENTAL-5678"
+                  :start-time "14:30"
+                  :duration 25}))
+
+(defn end-preview []
+  "Preview: End rental button with mock state"
+  (let [loading (atom false)]
+    (end loading)))
+
+(defn start-preview []
+  "Preview: Start rental button with mock state"
+  (let [loading (atom false)]
+    (start loading)))
+
+(defn instructions-preview []
+  "Preview: Instructions card"
+  (instructions))
+
+(defn no-bike-selected-preview []
+  "Preview: No bike selected placeholder"
+  (no-bike-selected))
 

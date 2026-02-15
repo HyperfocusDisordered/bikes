@@ -68,63 +68,72 @@ transcript = '$TRANSCRIPT'
 
 last_text = ''
 last_tools = []
-with open(transcript) as f:
-    for line in f:
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            entry = json.loads(line)
-            if entry.get('type') == 'assistant':
-                content = entry.get('message', {}).get('content', [])
-                if isinstance(content, list):
-                    text_parts = []
-                    tool_parts = []
-                    for block in content:
-                        if isinstance(block, dict):
-                            if block.get('type') == 'text':
-                                t = block.get('text', '').strip()
-                                if t:
-                                    text_parts.append(t)
-                            elif block.get('type') == 'tool_use':
-                                name = block.get('name', '?')
-                                inp = block.get('input', {})
-                                # Brief summary of tool usage
-                                if name == 'Edit':
-                                    fp = inp.get('file_path', '?')
-                                    tool_parts.append(f'✏️ Edit: {fp.rsplit(chr(47),1)[-1]}')
-                                elif name == 'Write':
-                                    fp = inp.get('file_path', '?')
-                                    tool_parts.append(f'📝 Write: {fp.rsplit(chr(47),1)[-1]}')
-                                elif name == 'Read':
-                                    fp = inp.get('file_path', '?')
-                                    if 'bridge-' in fp or 'bridge.' in fp:
-                                        continue
-                                    tool_parts.append(f'👁 Read: {fp.rsplit(chr(47),1)[-1]}')
-                                elif name == 'Bash':
-                                    cmd = inp.get('command', '?')[:60]
-                                    # Skip internal bridge commands
-                                    import re as _re
-                                    if _re.search(r'bridge-outbox|bridge-inbox|bridge-hook|bridge-log|bridge-daemon', cmd):
-                                        continue
-                                    tool_parts.append(f'💻 {cmd}')
-                                elif name == 'Glob':
-                                    p = inp.get('pattern', '?')
-                                    tool_parts.append(f'🔍 Glob: {p}')
-                                elif name == 'Grep':
-                                    p = inp.get('pattern', '?')
-                                    tool_parts.append(f'🔍 Grep: {p}')
-                                elif name == 'Task':
-                                    d = inp.get('description', '?')
-                                    tool_parts.append(f'🤖 Agent: {d}')
-                                else:
-                                    tool_parts.append(f'🔧 {name}')
-                    if text_parts:
-                        last_text = '\n'.join(text_parts)
-                    if tool_parts:
-                        last_tools = tool_parts
-        except:
-            continue
+
+# OPTIMIZATION: Only read last 100KB of transcript (not entire 3MB+ file)
+import os
+file_size = os.path.getsize(transcript)
+TAIL_BYTES = 100_000  # 100KB — enough for last few turns
+with open(transcript, 'rb') as fb:
+    if file_size > TAIL_BYTES:
+        fb.seek(file_size - TAIL_BYTES)
+        fb.readline()  # skip partial first line
+    raw = fb.read().decode('utf-8', errors='replace')
+for line in raw.split('\n'):
+    line = line.strip()
+    if not line:
+        continue
+    try:
+        entry = json.loads(line)
+        if entry.get('type') == 'assistant':
+            content = entry.get('message', {}).get('content', [])
+            if isinstance(content, list):
+                text_parts = []
+                tool_parts = []
+                for block in content:
+                    if isinstance(block, dict):
+                        if block.get('type') == 'text':
+                            t = block.get('text', '').strip()
+                            if t:
+                                text_parts.append(t)
+                        elif block.get('type') == 'tool_use':
+                            name = block.get('name', '?')
+                            inp = block.get('input', {})
+                            # Brief summary of tool usage
+                            if name == 'Edit':
+                                fp = inp.get('file_path', '?')
+                                tool_parts.append(f'✏️ Edit: {fp.rsplit(chr(47),1)[-1]}')
+                            elif name == 'Write':
+                                fp = inp.get('file_path', '?')
+                                tool_parts.append(f'📝 Write: {fp.rsplit(chr(47),1)[-1]}')
+                            elif name == 'Read':
+                                fp = inp.get('file_path', '?')
+                                if 'bridge-' in fp or 'bridge.' in fp:
+                                    continue
+                                tool_parts.append(f'👁 Read: {fp.rsplit(chr(47),1)[-1]}')
+                            elif name == 'Bash':
+                                cmd = inp.get('command', '?')[:60]
+                                # Skip internal bridge commands
+                                import re as _re
+                                if _re.search(r'bridge-outbox|bridge-inbox|bridge-hook|bridge-log|bridge-daemon', cmd):
+                                    continue
+                                tool_parts.append(f'💻 {cmd}')
+                            elif name == 'Glob':
+                                p = inp.get('pattern', '?')
+                                tool_parts.append(f'🔍 Glob: {p}')
+                            elif name == 'Grep':
+                                p = inp.get('pattern', '?')
+                                tool_parts.append(f'🔍 Grep: {p}')
+                            elif name == 'Task':
+                                d = inp.get('description', '?')
+                                tool_parts.append(f'🤖 Agent: {d}')
+                            else:
+                                tool_parts.append(f'🔧 {name}')
+                if text_parts:
+                    last_text = '\n'.join(text_parts)
+                if tool_parts:
+                    last_tools = tool_parts
+    except:
+        continue
 
 if not last_text and not last_tools:
     hlog('No text or tools found, exiting')

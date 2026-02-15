@@ -1,0 +1,1 @@
+ALTER TABLE qrcode ADD COLUMN channel TEXT NOT NULL DEFAULT 'telegram';

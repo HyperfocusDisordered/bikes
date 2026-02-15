@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Karma Rent — Admin Panel</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f0f0f; color: #e0e0e0; }
+.container { max-width: 900px; margin: 0 auto; padding: 16px; }
+h1 { font-size: 1.5rem; margin-bottom: 16px; color: #fff; }
+h2 { font-size: 1.1rem; margin: 20px 0 10px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+
+/* Login */
+#login { display: flex; flex-direction: column; gap: 12px; max-width: 300px; margin: 100px auto; }
+#login input { padding: 12px; border-radius: 8px; border: 1px solid #333; background: #1a1a1a; color: #fff; font-size: 16px; }
+#login button { padding: 12px; border-radius: 8px; border: none; background: #6c5ce7; color: #fff; font-size: 16px; cursor: pointer; }
+#login button:hover { background: #5a4bd1; }
+
+/* Cards */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.stat { background: #1a1a1a; border-radius: 12px; padding: 16px; text-align: center; }
+.stat .num { font-size: 2rem; font-weight: 700; color: #fff; }
+.stat .label { font-size: 0.8rem; color: #888; margin-top: 4px; }
+
+/* Table */
+table { width: 100%; border-collapse: collapse; background: #1a1a1a; border-radius: 12px; overflow: hidden; }
+th { background: #222; padding: 10px 12px; text-align: left; font-size: 0.8rem; color: #888; text-transform: uppercase; }
+td { padding: 10px 12px; border-top: 1px solid #222; font-size: 0.9rem; }
+tr:hover td { background: #222; }
+.status { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; }
+.status.available { background: #00b894; color: #fff; }
+.status.rented { background: #d63031; color: #fff; }
+.status.booked { background: #fdcb6e; color: #000; }
+.status.maintenance { background: #636e72; color: #fff; }
+.status.hold { background: #dfe6e9; color: #000; }
+.status.pending { background: #fdcb6e; color: #000; }
+.status.confirmed { background: #00b894; color: #fff; }
+.status.cancelled { background: #636e72; color: #fff; }
+.status.completed { background: #74b9ff; color: #000; }
+
+/* Tabs */
+.tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+.tab { padding: 8px 16px; border-radius: 8px; border: 1px solid #333; background: transparent; color: #aaa; cursor: pointer; font-size: 0.9rem; }
+.tab.active { background: #6c5ce7; color: #fff; border-color: #6c5ce7; }
+
+/* Audit */
+.audit-entry { padding: 8px 12px; border-bottom: 1px solid #222; font-size: 0.85rem; }
+.audit-entry:last-child { border-bottom: none; }
+.audit-action { color: #6c5ce7; font-weight: 600; }
+.audit-time { color: #666; font-size: 0.75rem; }
+
+.hidden { display: none; }
+.loading { text-align: center; padding: 40px; color: #666; }
+</style>
+</head>
+<body>
+
+<div id="login">
+  <h1>🏍 Karma Rent</h1>
+  <input type="password" id="token-input" placeholder="Admin token" autofocus>
+  <button onclick="doLogin()">Войти</button>
+</div>
+
+<div id="app" class="hidden">
+  <div class="container">
+    <h1>🏍 Karma Rent</h1>
+
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('overview', event)">Обзор</button>
+      <button class="tab" onclick="showTab('bikes', event)">Байки</button>
+      <button class="tab" onclick="showTab('bookings', event)">Брони</button>
+      <button class="tab" onclick="showTab('audit', event)">Журнал</button>
+    </div>
+
+    <!-- Overview -->
+    <div id="tab-overview">
+      <div class="stats" id="stats"></div>
+    </div>
+
+    <!-- Bikes -->
+    <div id="tab-bikes" class="hidden">
+      <div id="bikes-table"></div>
+    </div>
+
+    <!-- Bookings -->
+    <div id="tab-bookings" class="hidden">
+      <div id="bookings-table"></div>
+    </div>
+
+    <!-- Audit -->
+    <div id="tab-audit" class="hidden">
+      <div id="audit-list" style="background:#1a1a1a;border-radius:12px;overflow:hidden;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const BASE = '/api';
+let TOKEN = localStorage.getItem('kr-token') || '';
+
+function doLogin() {
+  TOKEN = document.getElementById('token-input').value;
+  localStorage.setItem('kr-token', TOKEN);
+  init();
+}
+
+async function api(endpoint) {
+  const r = await fetch(BASE + endpoint, {
+    headers: { 'Authorization': 'Bearer ' + TOKEN }
+  });
+  return r.json();
+}
+
+function showTab(name, evt) {
+  document.querySelectorAll('[id^="tab-"]').forEach(el => el.classList.add('hidden'));
+  document.getElementById('tab-' + name).classList.remove('hidden');
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  if (evt) evt.target.classList.add('active');
+
+  if (name === 'bikes') loadBikes();
+  if (name === 'bookings') loadBookings();
+  if (name === 'audit') loadAudit();
+}
+
+function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+function statusHtml(s) {
+  return `<span class="status ${esc(s)}">${esc(s)}</span>`;
+}
+
+async function init() {
+  try {
+    const [bikesR, reportR] = await Promise.all([
+      api('/admin/bikes'),
+      api('/admin/report')
+    ]);
+
+    if (bikesR.status !== 'success') {
+      alert('Неверный токен');
+      return;
+    }
+
+    document.getElementById('login').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+
+    const bikes = bikesR.data.bikes;
+    const free = bikes.filter(b => b.status === 'available').length;
+    const rented = bikes.filter(b => b.status === 'rented').length;
+    const partners = reportR.data?.partners || [];
+    const revenue = partners.reduce((s, p) => s + (p.total_revenue || 0), 0);
+
+    document.getElementById('stats').innerHTML = `
+      <div class="stat"><div class="num">${bikes.length}</div><div class="label">Всего байков</div></div>
+      <div class="stat"><div class="num" style="color:#00b894">${free}</div><div class="label">Свободных</div></div>
+      <div class="stat"><div class="num" style="color:#d63031">${rented}</div><div class="label">В аренде</div></div>
+      <div class="stat"><div class="num" style="color:#6c5ce7">${revenue}k</div><div class="label">Revenue (мес)</div></div>
+    `;
+  } catch (e) {
+    alert('Ошибка: ' + e.message);
+  }
+}
+
+async function loadBikes() {
+  const r = await api('/admin/bikes');
+  const bikes = r.data?.bikes || [];
+  let html = '<table><tr><th>Байк</th><th>Номер</th><th>Статус</th><th>Цена</th><th>Масло</th></tr>';
+  for (const b of bikes) {
+    const oilDays = b.days_since_oil != null ? Math.round(b.days_since_oil) + 'д' : '—';
+    const oilColor = b.oil_urgency === 2 ? '#d63031' : b.oil_urgency === 1 ? '#fdcb6e' : '#00b894';
+    html += `<tr>
+      <td><b>${esc(b.name)}</b></td>
+      <td>${esc(b.plate_number || '—')}</td>
+      <td>${statusHtml(b.status)}</td>
+      <td>${b.daily_rate || '—'}k${b.monthly_rate ? '/' + b.monthly_rate + 'k' : ''}</td>
+      <td style="color:${oilColor}">${oilDays}</td>
+    </tr>`;
+  }
+  html += '</table>';
+  document.getElementById('bikes-table').innerHTML = html;
+}
+
+async function loadBookings() {
+  const r = await api('/admin/bikes');
+  // Show rented bikes with booking info
+  const rented = (r.data?.bikes || []).filter(b => b.status === 'rented');
+  let html = '<table><tr><th>Байк</th><th>Тип</th><th>До</th><th>Дней</th></tr>';
+  for (const b of rented) {
+    const days = b.days_rented != null ? Math.round(b.days_rented) : '—';
+    const endColor = b.rental_urgency === 2 ? '#d63031' : b.rental_urgency === 1 ? '#fdcb6e' : '#e0e0e0';
+    html += `<tr>
+      <td><b>${esc(b.name)}</b></td>
+      <td>${esc(b.rental_type || 'daily')}</td>
+      <td style="color:${endColor}">${esc(b.rental_end_date || '—')}</td>
+      <td>${days}д</td>
+    </tr>`;
+  }
+  if (!rented.length) html += '<tr><td colspan="4" style="text-align:center;color:#666">Нет активных аренд</td></tr>';
+  html += '</table>';
+  document.getElementById('bookings-table').innerHTML = html;
+}
+
+async function loadAudit() {
+  const r = await api('/admin/audit-log?limit=30');
+  const log = r.data?.log || [];
+  let html = '';
+  if (!log.length) {
+    html = '<div class="audit-entry" style="color:#666">Журнал пуст</div>';
+  }
+  for (const e of log) {
+    const details = e.details ? JSON.parse(e.details) : {};
+    const detailStr = Object.entries(details).map(([k,v]) => `${esc(String(k))}: ${esc(String(v))}`).join(' &bull; ');
+    html += `<div class="audit-entry">
+      <span class="audit-action">${esc(e.action)}</span>
+      ${e.entity_type ? `<span style="color:#888">${esc(e.entity_type)}#${esc(String(e.entity_id))}</span>` : ''}
+      ${detailStr ? `<br><span style="color:#999">${detailStr}</span>` : ''}
+      <br><span class="audit-time">${esc(e.created_at)}</span>
+    </div>`;
+  }
+  document.getElementById('audit-list').innerHTML = html;
+}
+
+// Auto-login if token saved
+if (TOKEN) init();
+</script>
+</body>
+</html>

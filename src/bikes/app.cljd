@@ -3,6 +3,7 @@
   (:require [flutter-cljd.widgets :as ui]
             [flutter-cljd.material :as material]
             [bikes.screens.home :as home]
+            [bikes.screens.map-screen :as map-screen]
             [bikes.screens.qr-scanner :as qr-scanner]
             [bikes.screens.bike-rental :as bike-rental]))
 
@@ -10,14 +11,88 @@
   "Точка входа приложения"
   ;; Примечание: синтаксис может отличаться в зависимости от версии flutter-cljd
   ;; Проверьте документацию: https://github.com/dankinsoid/flutter-cljd
-  (material/material-app
-   {:title "Bikes"
-    :theme (material/theme-data
-            {:primary-swatch material/blue
-             :use-material3 true})
-    :initial-route "/"
-    :routes {"/" (fn [_] (home/home-screen))
-             "/qr-scanner" (fn [_] (qr-scanner/qr-scanner-screen))
-             "/rental" (fn [_] (bike-rental/bike-rental-screen))}
-    :home (home/home-screen)}))
+  
+  ;; Получаем параметр component из URL для превью
+  (let [url-search (.-search (.-location js/window))
+        component-param (when (and url-search (not= url-search ""))
+                          (try
+                            (let [params (js/URLSearchParams. url-search)]
+                              (.get params "component"))
+                            (catch :default e
+                              nil)))
+        ;; Определяем какой компонент рендерить на основе параметра
+        ;; Поддерживаем как экраны, так и отдельные компоненты с моками
+        preview-component (cond
+                           ;; Экраны
+                           (= component-param "home-screen") (home/home-screen)
+                           (= component-param "map-screen") (map-screen/map-screen)
+                           (= component-param "qr-scanner-screen") (qr-scanner/qr-scanner-screen)
+                           (= component-param "bike-rental-screen") (bike-rental/bike-rental-screen)
+                           ;; UI компоненты из home с моками
+                           (= component-param "app-bar") (home/app-bar-preview)
+                           (= component-param "navbar") (home/app-bar-preview)
+                           (= component-param "welcome") (home/welcome-preview)
+                           (= component-param "welcomeCard") (home/welcome-preview)
+                           (= component-param "leading") (home/leading-preview)
+                           (= component-param "logo") (home/leading-preview)
+                           (= component-param "profile") (home/profile-preview)
+                           (= component-param "settings") (home/settings-preview)
+                           (= component-param "scan") (home/scan-preview)
+                           (= component-param "scanQR") (home/scan-preview)
+                           (= component-param "current-rental") (home/current-rental-preview)
+                           ;; UI компоненты из qr-scanner с моками
+                           (= component-param "back") (qr-scanner/back-preview)
+                           (= component-param "camera") (qr-scanner/camera-preview)
+                           (= component-param "pwa") (qr-scanner/pwa-preview)
+                           ;; UI компоненты из bike-rental с моками
+                           (= component-param "bike-info") (bike-rental/bike-info-preview)
+                           (= component-param "rental-status") (bike-rental/rental-status-preview)
+                           (= component-param "start") (bike-rental/start-preview)
+                           (= component-param "end") (bike-rental/end-preview)
+                           (= component-param "instructions") (bike-rental/instructions-preview)
+                           (= component-param "no-bike-selected") (bike-rental/no-bike-selected-preview)
+                           :else nil)
+        ;; Проверяем, является ли это preview компонентом (не экраном)
+        is-preview-component (and preview-component
+                                  (not= component-param "home-screen")
+                                  (not= component-param "map-screen")
+                                  (not= component-param "qr-scanner-screen")
+                                  (not= component-param "bike-rental-screen"))]
+    (if is-preview-component
+      ;; Для preview компонентов рендерим только сам компонент напрямую в корне MaterialApp
+      ;; Используем builder чтобы вставить компонент в корень без Scaffold
+      (material/material-app
+       {:title "Component Preview"
+        :theme (material/theme-data
+                {:primary-swatch material/blue
+                 :use-material3 true})
+        :builder (fn [context child]
+                   ;; Рендерим preview компонент напрямую в корне, центрируем на черном фоне
+                   (ui/container
+                    {:color (material/colors/black)
+                     :child (ui/center preview-component)}))})
+      ;; Для экранов рендерим полное приложение
+      (let [initial-screen (cond
+                            (= component-param "home-screen") (home/home-screen)
+                            (= component-param "map-screen") (map-screen/map-screen)
+                            (= component-param "qr-scanner-screen") (qr-scanner/qr-scanner-screen)
+                            (= component-param "bike-rental-screen") (bike-rental/bike-rental-screen)
+                            :else (map-screen/map-screen))
+            initial-route (cond
+                           (= component-param "home-screen") "/home"
+                           (= component-param "map-screen") "/"
+                           (= component-param "qr-scanner-screen") "/qr-scanner"
+                           (= component-param "bike-rental-screen") "/rental"
+                           :else "/")]
+        (material/material-app
+         {:title "Bikes"
+          :theme (material/theme-data
+                  {:primary-swatch material/blue
+                   :use-material3 true})
+          :initial-route initial-route
+          :routes {"/" (fn [_] (map-screen/map-screen))
+                   "/home" (fn [_] (home/home-screen))
+                   "/qr-scanner" (fn [_] (qr-scanner/qr-scanner-screen))
+                   "/rental" (fn [_] (bike-rental/bike-rental-screen))}
+          :home initial-screen})))))
 

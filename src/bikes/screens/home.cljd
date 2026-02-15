@@ -4,51 +4,86 @@
             [flutter-cljd.material :as material]
             [bikes.state.app-state :as state]))
 
+;; UI Components
+(defn leading []
+  "Logo icon"
+  (ui/text "🚴"))
+
+(defn profile []
+  "Profile button"
+  (material/icon-button
+   {:icon (ui/text "👤")
+    :on-pressed #(js/console.log "Profile")}))
+
+(defn settings []
+  "Settings button"
+  (material/icon-button
+   {:icon (ui/text "⚙️")
+    :on-pressed #(js/console.log "Settings")}))
+
+(defn app-bar []
+  "App bar with logo and actions"
+  (material/app-bar
+   {:title (ui/text "Bikes")
+    :backgroundColor material/blue
+    :leading (leading)
+    :actions [(profile) (settings)]}))
+
+(defn welcome []
+  "Welcome card"
+  (material/card
+   {:elevation 2
+    :child (ui/padding
+            {:padding (ui/edge-insets-all 20)}
+            (ui/column
+             {:spacing 12}
+             (ui/text "Welcome to Bikes!"
+                     {:style (ui/text-style {:size 24 :weight ui/font-weight-bold})})
+             (ui/text "Scan QR code to start your ride"
+                     {:style (ui/text-style {:size 14 :color material/grey-600})})))}))
+
+(defn scan []
+  "Scan QR code button"
+  (material/card
+   {:child (material/list-tile
+            {:leading (ui/icon material/icons/qr-code-scanner {:size 32 :color material/blue})
+             :title (ui/text "Scan QR Code")
+             :subtitle (ui/text "Start a new rental")
+             :trailing (material/icons/chevron-right)
+             :on-tap #(js/console.log "Navigate to QR scanner")})}))
+
+(defn current-rental []
+  "Current rental card"
+  (material/card
+   {:child (material/list-tile
+            {:leading (ui/icon material/icons/directions-bike {:size 32 :color material/green})
+             :title (ui/text "Current Rental")
+             :subtitle (ui/text "View active rental")
+             :trailing (material/icons/chevron-right)
+             :on-tap #(js/console.log "Navigate to rental")})}))
+
 (defn home-screen []
   (ui/scaffold
-   {:app-bar (material/app-bar
-              {:title (ui/text "Bikes")
-               :backgroundColor material/blue})
+   {:app-bar (app-bar)
     :body (ui/padding
            {:padding (ui/edge-insets-all 16)}
            (ui/column
             {:spacing 24}
-            
+
             ;; Welcome Card
-            (material/card
-             {:elevation 2
-              :child (ui/padding
-                     {:padding (ui/edge-insets-all 20)}
-                     (ui/column
-                      {:spacing 12}
-                      (ui/text "Welcome to Bikes!"
-                              {:style (ui/text-style {:size 24 :weight ui/font-weight-bold})})
-                      (ui/text "Scan QR code to start your ride"
-                              {:style (ui/text-style {:size 14 :color material/grey-600})}))))}
-            
+            (welcome)
+
             ;; Quick Actions
             (ui/column
              {:spacing 12}
              (ui/text "Quick Actions"
                      {:style (ui/text-style {:size 18 :weight ui/font-weight-bold})})
-             
-             (material/card
-              {:child (material/list-tile
-                      {:leading (ui/icon material/icons/qr-code-scanner {:size 32 :color material/blue})
-                       :title (ui/text "Scan QR Code")
-                       :subtitle (ui/text "Start a new rental")
-                       :trailing (material/icons/chevron-right)
-                       :on-tap #(js/console.log "Navigate to QR scanner")})})
-             
+
+             (scan)
+
              (when @state/current-rental
-               (material/card
-                {:child (material/list-tile
-                        {:leading (ui/icon material/icons/directions-bike {:size 32 :color material/green})
-                         :title (ui/text "Current Rental")
-                         :subtitle (ui/text "View active rental")
-                         :trailing (material/icons/chevron-right)
-                         :on-tap #(js/console.log "Navigate to rental")})})))
-            
+               (current-rental)))
+
             ;; Stats (placeholder)
             (material/card
              {:child (ui/padding
@@ -71,4 +106,33 @@
                                 {:style (ui/text-style {:size 12 :color material/grey-600})})
                         (ui/text "0 km"
                                 {:style (ui/text-style {:size 24 :weight ui/font-weight-bold})})))))}))}))})
+
+;; Preview functions with mocks
+(defn leading-preview []
+  "Preview: Logo icon"
+  (leading))
+
+(defn profile-preview []
+  "Preview: Profile button"
+  (profile))
+
+(defn settings-preview []
+  "Preview: Settings button"
+  (settings))
+
+(defn app-bar-preview []
+  "Preview: App bar with logo and actions"
+  (app-bar))
+
+(defn welcome-preview []
+  "Preview: Welcome card"
+  (welcome))
+
+(defn scan-preview []
+  "Preview: Scan QR code button"
+  (scan))
+
+(defn current-rental-preview []
+  "Preview: Current rental card"
+  (current-rental)))
 

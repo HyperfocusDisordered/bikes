@@ -1,86 +1,125 @@
-# Bikes - Bike Sharing PWA
+# 🚴 Bikes - PWA Bike Sharing App
 
-Проект байк-шэринга на ClojureDart/Flutter с поддержкой PWA и Bluetooth взаимодействия с блокировщиками.
+Bike sharing PWA приложение с **ClojureDart** фронтендом и **Clojure** бэкендом.
 
-## Технологии
+## 🏗️ Архитектура
 
-- **ClojureDart** - Clojure для Dart/Flutter
-- **Flutter** - кроссплатформенный фреймворк
-- **flutter-cljd** - библиотека для работы с Flutter Material widgets
-- **PWA** - поддержка прогрессивного веб-приложения
-- **Bluetooth** - взаимодействие с блокировщиками через flutter_blue_plus
+- **Frontend**: ClojureDart (Flutter web)
+- **Backend**: Clojure HTTP API  
+- **Database**: In-memory (mock данные)
+- **Maps**: Google Maps API
 
-## Структура проекта
+## 📦 Структура проекта
 
 ```
 bikes/
-├── src/
-│   └── bikes/
-│       ├── core.cljd          # Точка входа
-│       ├── app.cljd           # Главное приложение
-│       ├── screens/
-│       │   ├── qr_scanner.cljd    # Экран сканирования QR
-│       │   ├── bike_unlock.cljd    # Экран разблокировки
-│       │   └── bike_rental.cljd    # Экран аренды
-│       ├── services/
-│       │   ├── bluetooth.cljd      # Сервис Bluetooth
-│       │   └── api.cljd            # API клиент
-│       └── components/
-│           └── pwa_install.cljd    # Компонент установки PWA
-├── lib/                        # Dart код (если нужен)
-├── assets/                     # Ресурсы
-├── deps.edn                    # Clojure зависимости
-└── pubspec.yaml               # Flutter зависимости
+├── src/bikes/               # ClojureDart frontend
+│   ├── screens/            # Экраны приложения
+│   ├── state/              # Global state (atoms)
+│   ├── services/           # API клиенты
+│   └── components/         # UI компоненты
+├── backend/                # Clojure API backend
+│   └── src/bikes_api/
+│       └── simple.clj      # HTTP сервер
+├── lib/                    # Flutter/Dart (альтернативная реализация)
+└── dev-tools/              # Инструменты разработки
+    └── interactive/        # Интерактивная документация
 ```
 
-## Установка и запуск
+## 🚀 Быстрый старт
 
-### Требования
-
-- Clojure CLI (clj)
-- Flutter SDK
-- Dart SDK
-
-### Установка зависимостей
+### 1. Запуск Clojure Backend
 
 ```bash
-# Flutter зависимости
-flutter pub get
-
-# Clojure зависимости
-clj -M:dev
+cd backend
+export PATH="/opt/homebrew/opt/openjdk@17/bin:$PATH"
+clj -M -m bikes-api.simple
 ```
 
-### Запуск
+Backend запустится на **http://localhost:3000**
+
+### 2. Запуск Frontend
 
 ```bash
-# Web (PWA)
-flutter run -d chrome --web-renderer html
+# ClojureDart (рекомендуется)
+clj -M:cljd flutter
 
-# Android
-flutter run
-
-# iOS
+# Или Flutter/Dart
 flutter run
 ```
 
-## MVP Функциональность
+### 3. Интерактивная документация
 
-1. **QR Scanner** - сканирование QR кода на байке
-2. **PWA Install** - предложение установить PWA
-3. **Bluetooth Connection** - подключение к блокировщику
-4. **Unlock/Lock** - разблокировка/блокировка байка
-5. **Rental Management** - управление арендой
+```bash
+cd dev-tools/interactive
+python3 -m http.server 3456
+open http://localhost:3456
+```
 
-## Bluetooth Возможности
+## 🗺️ Экраны приложения
 
-Flutter с flutter_blue_plus предоставляет:
-- ✅ Полный доступ к Bluetooth Low Energy (BLE)
-- ✅ Работа на iOS и Android
-- ✅ Поддержка характеристик и сервисов
-- ✅ Чтение/запись данных
-- ✅ Подписки на уведомления
-- ✅ Сканирование устройств
+### ClojureDart Frontend
 
-Это решает ограничения Web Bluetooth API в PWA!
+1. **🗺️ map-screen** - Карта с велосипедами
+2. **🏠 home** - Домашний экран  
+3. **🚴 bike-rental** - Аренда велосипеда
+4. **📷 qr-scanner** - Сканер QR кодов
 
+## 🔌 API Endpoints
+
+- `GET /api/bikes` - Список всех велосипедов
+- `GET /api/bikes/:id` - Информация о велосипеде
+- `POST /api/rentals/start` - Начать аренду
+- `GET /api/rentals/current` - Текущая аренда
+
+## 📊 Mock данные
+
+- **3 велосипеда** в Тбилиси (батарея 85%, 60%, 95%)
+
+## 🛠️ Технологии
+
+### Backend
+- **Clojure** + **http-kit** + **cheshire**
+
+### Frontend
+- **ClojureDart** + **Flutter** + **Google Maps**
+
+## 📝 Статус MVP
+
+### ✅ Завершено
+- ✅ 4 основных экрана
+- ✅ Google Maps интеграция
+- ✅ Global state (atoms)
+- ✅ Clojure HTTP API backend (localhost:3000)
+- ✅ Flutter app интеграция с Clojure API
+- ✅ API тестирование (6/6 tests passed)
+- ✅ E2E тестирование (7/7 scenarios passed)
+- ✅ Логирование и мониторинг
+- ✅ Автоматизированные тест-скрипты
+
+### 🧪 Тестирование
+Приложение полностью протестировано! См. [TESTING_COMPLETE.md](TESTING_COMPLETE.md)
+
+**Быстрый запуск**:
+```bash
+# Terminal 1: Backend
+cd backend && export PATH="/opt/homebrew/opt/openjdk@17/bin:$PATH" && clj -M -m bikes-api.simple
+
+# Terminal 2: Frontend
+flutter run -d chrome
+
+# Terminal 3: Tests
+./dev-tools/test-api-integration.sh
+```
+
+**Приложение доступно на**: http://localhost:50671 (или другой динамический порт)
+
+## 📖 Документация
+
+- [Backend README](backend/README.md)
+- [Interactive Docs](http://localhost:3456)
+- [Project Data](dev-tools/interactive/project-data.json)
+
+---
+
+Made with ❤️ using Clojure & ClojureDart

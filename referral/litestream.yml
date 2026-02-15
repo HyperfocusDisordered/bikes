@@ -1,0 +1,11 @@
+dbs:
+  - path: /data/karma_rent.db
+    replicas:
+      - type: s3
+        bucket: $BUCKET_NAME
+        path: backups/karma_rent.db
+        endpoint: $AWS_ENDPOINT_URL_S3
+        access-key-id: $AWS_ACCESS_KEY_ID
+        secret-access-key: $AWS_SECRET_ACCESS_KEY
+        region: $AWS_REGION
+        sync-interval: 60s

@@ -19,7 +19,8 @@ const API_BASE = 'https://karmarent.app/api/admin';
 const TOKEN = 'kr-admin-2026';
 const HF_BOT_TOKEN = '8300954318:AAGT5lYHVCJf_RVw3fUs-GMe2NB6-Y_6Nxw';
 const CLAUDE_CMD = '/opt/homebrew/bin/claude';
-const WHISPER_CMD = path.join(__dirname, '.whisper-venv/bin/whisper');
+const WHISPER_CLI = '/opt/homebrew/bin/whisper-cli';
+const WHISPER_MODEL = path.join(__dirname, '.whisper-models/ggml-large-v3-turbo-q5_0.bin');
 const POLL_INTERVAL = 3000; // 3 секунды
 const OUTBOX_FILE = path.join(__dirname, '.bridge-outbox');
 const INBOX_FILE = path.join(__dirname, '.bridge-inbox');
@@ -31,6 +32,7 @@ const PROJECTS = {
   bikes:    { dir: `${os.homedir()}/bikes`,            name: 'Karma Rent (bikes)' },
   tapyou:   { dir: `${os.homedir()}/mobile_app_ios`,   name: 'TapYou iOS' },
   afloatx:  { dir: `${os.homedir()}/AfloatX`,          name: 'ClipboardX (AfloatX)' },
+  cdek:     { dir: `${os.homedir()}/prestashop-cdek-module`, name: 'CDEK PrestaShop Module' },
 };
 
 // Auto-discover projects from ~/.claude/projects/
@@ -78,6 +80,7 @@ function detectProjectSwitch(text) {
         'байки': 'bikes', 'байкс': 'bikes', 'карма': 'bikes', 'карму': 'bikes', 'рент': 'bikes',
         'тапю': 'tapyou', 'тапъю': 'tapyou', 'тап': 'tapyou', 'tap': 'tapyou', 'ios': 'tapyou',
         'афлоат': 'afloatx', 'клипборд': 'afloatx', 'clipboard': 'afloatx', 'буферфлай': 'afloatx', 'bufferfly': 'afloatx', 'clipboardx': 'afloatx',
+        'сдек': 'cdek', 'cdek': 'cdek', 'сдэк': 'cdek', 'престашоп': 'cdek', 'prestashop': 'cdek',
       };
       if (aliases[name]) return aliases[name];
     }
@@ -399,38 +402,44 @@ async function transcribeVoice(fileId) {
     fs.writeFileSync(tmpFile, audioBuffer);
     log(`🎤 Voice: downloaded ${audioBuffer.length} bytes → ${tmpFile}`);
 
-    // 3. Run whisper locally (need /opt/homebrew/bin in PATH for ffmpeg)
-    const outputDir = os.tmpdir();
-    const env = { ...process.env, PATH: `/opt/homebrew/bin:${process.env.PATH || '/usr/bin:/bin'}` };
+    // 3. Convert OGG Opus → 16kHz mono WAV (whisper-cpp needs WAV)
+    const wavFile = tmpFile.replace('.ogg', '.wav');
     try {
-      const whisperOutput = execSync(
-        `${WHISPER_CMD} "${tmpFile}" --language ru --model tiny --output_format txt --output_dir "${outputDir}"`,
-        { timeout: 120000, stdio: 'pipe', env }
-      ).toString();
-      log(`🎤 Whisper output: ${whisperOutput.trim().substring(0, 100)}`);
+      execSync(
+        `/opt/homebrew/bin/ffmpeg -i "${tmpFile}" -ar 16000 -ac 1 -y "${wavFile}"`,
+        { timeout: 10000, stdio: 'pipe' }
+      );
     } catch (e) {
-      log(`❌ Voice: whisper failed: ${e.stderr?.toString() || e.message}`);
-      // Clean up
+      log(`❌ Voice: ffmpeg convert failed: ${e.stderr?.toString().substring(0, 200) || e.message}`);
       try { fs.unlinkSync(tmpFile); } catch (_) {}
       return null;
     }
 
-    // 4. Read transcription
-    const txtFile = tmpFile.replace('.ogg', '.txt');
+    // 4. Transcribe with whisper-cpp (large-v3-turbo q5, Metal GPU, flash-attn)
     let transcript = '';
     try {
-      transcript = fs.readFileSync(txtFile, 'utf-8').trim();
+      const result = execSync(
+        `"${WHISPER_CLI}" -m "${WHISPER_MODEL}" -l ru -f "${wavFile}" ` +
+        `--no-prints --no-timestamps ` +
+        `--prompt "Karma Rent, аренда байков, Пхукет, Пханг Нга, Таиланд, скутер, мотобайк"`,
+        { timeout: 60000, stdio: 'pipe', maxBuffer: 1024 * 1024 }
+      ).toString().trim();
+      transcript = result;
     } catch (e) {
-      log(`❌ Voice: can't read transcript file ${txtFile}`);
+      log(`❌ Voice: whisper-cli failed: ${e.stderr?.toString().substring(0, 200) || e.message}`);
+      try { fs.unlinkSync(tmpFile); } catch (_) {}
+      try { fs.unlinkSync(wavFile); } catch (_) {}
       return null;
     }
 
-    // 5. Clean up temp files
+    // 5. Clean up
     try { fs.unlinkSync(tmpFile); } catch (_) {}
-    try { fs.unlinkSync(txtFile); } catch (_) {}
+    try { fs.unlinkSync(wavFile); } catch (_) {}
 
-    log(`📝 Voice transcribed: "${transcript.substring(0, 80)}${transcript.length > 80 ? '...' : ''}"`);
-    return transcript;
+    if (transcript) {
+      log(`📝 Voice transcribed: "${transcript.substring(0, 80)}${transcript.length > 80 ? '...' : ''}"`);
+    }
+    return transcript || null;
   } catch (e) {
     log(`❌ Voice transcription error: ${e.message}`);
     return null;
@@ -509,6 +518,75 @@ async function handlePhotoMessage(text, ts) {
   return true;
 }
 
+// ── Document handling (zip, pdf, etc.) ───────────────
+
+const DOCS_DIR = path.join(__dirname, '.bridge-docs');
+if (!fs.existsSync(DOCS_DIR)) fs.mkdirSync(DOCS_DIR, { recursive: true });
+
+const MAX_TG_FILE_SIZE = 20 * 1024 * 1024; // 20 MB — Telegram Bot API limit
+
+async function handleDocumentMessage(text, ts) {
+  const match = text.match(/^\[doc:([^|]+)\|([^|\]]+)(?:\|(.+))?\]$/);
+  if (!match) return false;
+
+  const fileId = match[1];
+  const fileName = match[2] || 'unknown';
+  const caption = match[3] || '';
+  log(`📄 Document detected: ${fileName}, file_id: ${fileId}${caption ? `, caption: ${caption}` : ''}`);
+
+  try {
+    // 1. Get file info from Telegram
+    const fileInfo = await telegramApiRequest(`getFile?file_id=${fileId}`);
+    if (!fileInfo.ok || !fileInfo.result?.file_path) {
+      // file_size > 20MB → getFile fails
+      const captionText = caption ? ` (подпись: ${caption})` : '';
+      log(`⚠️ Document too large for Bot API: ${fileName}`);
+      fs.appendFileSync(INBOX_FILE, `DENIS [${ts}]: 📄 Документ "${fileName}"${captionText} — файл слишком большой (>20MB), скинь через AirDrop или облако\n`);
+      await apiRequest('POST', 'owner-send', {
+        text: `⚠️ Файл <b>${fileName}</b> слишком большой для Bot API (>20MB).\nСкинь через AirDrop, iCloud или ссылку.`
+      });
+      nudgeClaude();
+      return true;
+    }
+
+    // 2. Download file
+    const fileBuffer = await downloadFile(fileInfo.result.file_path);
+    const docFile = path.join(DOCS_DIR, `${Date.now()}_${fileName}`);
+    fs.writeFileSync(docFile, fileBuffer);
+    log(`📄 Document: downloaded ${fileBuffer.length} bytes → ${docFile}`);
+
+    // 3. Auto-extract zip files
+    const ext = path.extname(fileName).toLowerCase();
+    let extractedDir = null;
+    if (ext === '.zip') {
+      extractedDir = path.join(DOCS_DIR, `extracted_${Date.now()}`);
+      try {
+        fs.mkdirSync(extractedDir, { recursive: true });
+        execSync(`unzip -o "${docFile}" -d "${extractedDir}"`, { timeout: 60000 });
+        log(`📦 Extracted zip to: ${extractedDir}`);
+      } catch (e) {
+        log(`⚠️ Zip extraction failed: ${e.message}`);
+        extractedDir = null;
+      }
+    }
+
+    // 4. Write to inbox with local path
+    const captionText = caption ? ` (подпись: ${caption})` : '';
+    let inboxMsg = `DENIS [${ts}]: 📄 Документ "${fileName}"${captionText}: ${docFile}`;
+    if (extractedDir) {
+      inboxMsg += `\n  📦 Распаковано в: ${extractedDir}`;
+    }
+    fs.appendFileSync(INBOX_FILE, inboxMsg + '\n');
+    nudgeClaude();
+  } catch (e) {
+    log(`❌ Document error: ${e.message}`);
+    fs.appendFileSync(INBOX_FILE, `DENIS [${ts}]: [ошибка при скачивании документа: ${fileName}]\n`);
+    nudgeClaude();
+  }
+
+  return true;
+}
+
 async function checkMessages() {
   try {
     const result = await apiRequest('GET', 'owner-msgs');
@@ -540,6 +618,78 @@ async function checkMessages() {
         } catch (e) {
           log(`❌ Permission write error: ${e.message}`);
         }
+      } else if (text.toLowerCase() === '/clear' || text.toLowerCase() === 'клир' || text.toLowerCase() === 'clear' || text.toLowerCase() === 'очисти сессию') {
+        // Clear Claude Code session: save → wait for file marker → clear → boot
+        log('🧹 CLEAR SESSION requested by Denis');
+        if (isClaudeRunning()) {
+          const markerFile = '/tmp/.claude-session-saved';
+          try {
+            // Remove stale marker
+            try { fs.unlinkSync(markerFile); } catch (_) {}
+            // Step 1: Ask Claude to save session, create marker file when done
+            execSync(`/opt/homebrew/bin/tmux send-keys -t claude 'Сохрани сессию — сейчас будет /clear. Обнови session.md и context.md, запиши Used (non-boot) файлы. Когда всё сохранено, создай файл /tmp/.claude-session-saved с содержимым done (через Bash: touch /tmp/.claude-session-saved)'`);
+            execSync(`/opt/homebrew/bin/tmux send-keys -t claude C-m`);
+            log('💾 Sent save-session prompt to Claude');
+            await apiRequest('POST', 'owner-send', {
+              text: '💾 Прошу Claude сохранить сессию... жду файл-маркер'
+            });
+            // Step 2: Poll for marker file existence
+            const POLL_INTERVAL = 1000;
+            const TIMEOUT = 60000;
+            let elapsed = 0;
+            const pollTimer = setInterval(() => {
+              elapsed += POLL_INTERVAL;
+              if (fs.existsSync(markerFile)) {
+                clearInterval(pollTimer);
+                log('✅ Marker file detected');
+                try { fs.unlinkSync(markerFile); } catch (_) {}
+                // Step 3: /clear
+                execSync(`/opt/homebrew/bin/tmux send-keys -t claude '/clear'`);
+                execSync(`/opt/homebrew/bin/tmux send-keys -t claude C-m`);
+                log('✅ Sent /clear');
+                // Step 4: Boot after /clear processes
+                setTimeout(() => {
+                  try {
+                    execSync(`/opt/homebrew/bin/tmux send-keys -t claude 'boot — выполни boot sequence и скажи Denis в телегу что бутнулся (ветка, проект, статус)'`);
+                    execSync(`/opt/homebrew/bin/tmux send-keys -t claude C-m`);
+                    log('🚀 Sent boot prompt after /clear');
+                    apiRequest('POST', 'owner-send', {
+                      text: '✅ Сессия: сохранена → очищена → бут запущен'
+                    });
+                  } catch (e) {
+                    log(`⚠️ Boot after clear failed: ${e.message}`);
+                  }
+                }, 3000);
+              }
+              if (elapsed >= TIMEOUT) {
+                clearInterval(pollTimer);
+                log('⏰ Save timeout (60s), proceeding with /clear anyway');
+                try { fs.unlinkSync(markerFile); } catch (_) {}
+                execSync(`/opt/homebrew/bin/tmux send-keys -t claude '/clear'`);
+                execSync(`/opt/homebrew/bin/tmux send-keys -t claude C-m`);
+                setTimeout(() => {
+                  try {
+                    execSync(`/opt/homebrew/bin/tmux send-keys -t claude 'boot — выполни boot sequence и скажи Denis в телегу что бутнулся (ветка, проект, статус)'`);
+                    execSync(`/opt/homebrew/bin/tmux send-keys -t claude C-m`);
+                  } catch (_) {}
+                }, 3000);
+                apiRequest('POST', 'owner-send', {
+                  text: '⏰ Таймаут сохранения (60с), очистил принудительно + бут'
+                });
+              }
+            }, POLL_INTERVAL);
+          } catch (e) {
+            log(`❌ Save-before-clear failed: ${e.message}`);
+            await apiRequest('POST', 'owner-send', {
+              text: `❌ Ошибка: ${e.message}`
+            });
+          }
+        } else {
+          await apiRequest('POST', 'owner-send', {
+            text: '⚠️ Claude не запущен — нечего очищать'
+          });
+        }
+        // Daemon-level command — don't write to inbox
       } else if (text.toLowerCase() === 'restart claude' || text.toLowerCase() === '/restart') {
         // Restart Claude CLI in tmux with --dangerously-skip-permissions
         log('🔄 RESTART CLAUDE requested by Denis');
@@ -593,6 +743,9 @@ async function checkMessages() {
       } else if (text.match(/^\[photo:.+\]$/)) {
         // Photo message — download locally
         await handlePhotoMessage(text, ts);
+      } else if (text.match(/^\[doc:.+\]$/)) {
+        // Document message (zip, pdf, etc.) — download + extract
+        await handleDocumentMessage(text, ts);
       } else {
         // Regular message — write to inbox (Claude reads via Stop hook)
         fs.appendFileSync(INBOX_FILE, `DENIS [${ts}]: ${text}\n`);
@@ -691,6 +844,21 @@ async function poll() {
   await processOutbox();
   retryNudgeIfNeeded();
 }
+
+// ── Kill other daemon instances on startup ──
+(function killDuplicates() {
+  try {
+    const myPid = process.pid;
+    const ps = execSync(`pgrep -f 'bridge-daemon\\.js' 2>/dev/null`).toString().trim();
+    for (const pidStr of ps.split('\n')) {
+      const pid = parseInt(pidStr);
+      if (pid && pid !== myPid) {
+        try { process.kill(pid, 'SIGTERM'); } catch (_) {}
+        log(`🧹 Killed duplicate daemon PID ${pid}`);
+      }
+    }
+  } catch (_) {} // no other instances — fine
+})();
 
 // Main loop
 log('🚀 HyperFocus Bridge Daemon started');

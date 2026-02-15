@@ -1,0 +1,118 @@
+(ns bikes.screens.map-screen
+  "Главный экран с картой и велосипедами"
+  (:require [flutter-cljd.widgets :as ui]
+            [flutter-cljd.material :as material]
+            ["package:google_maps_flutter/google_maps_flutter.dart" :as maps]))
+
+;; Моковые данные велосипедов
+(def mock-bikes
+  [{:id "bike-1"
+    :lat 41.7151
+    :lng 44.8271
+    :battery 85
+    :price 2.5}
+   {:id "bike-2"
+    :lat 41.7161
+    :lng 44.8281
+    :battery 60
+    :price 2.5}
+   {:id "bike-3"
+    :lat 41.7141
+    :lng 44.8261
+    :battery 95
+    :price 2.5}])
+
+;; Центр карты - Тбилиси
+(def initial-camera-position
+  (maps/CameraPosition.
+   {:target (maps/LatLng. 41.7151 44.8271)
+    :zoom 15}))
+
+(defn map-view []
+  "Google Maps виджет"
+  (ui/sized-box
+   {:width js/Infinity
+    :height js/Infinity
+    :child (maps/GoogleMap.
+            {:initialCameraPosition initial-camera-position
+             :myLocationEnabled true
+             :myLocationButtonEnabled false
+             :zoomControlsEnabled false
+             :mapType maps/MapType.normal})}))
+
+(defn scan-button []
+  "Кнопка Scan внизу карты"
+  (ui/positioned
+   {:bottom 100
+    :left 0
+    :right 0
+    :child (ui/center
+            (material/elevated-button
+             {:style (material/ElevatedButton.styleFrom
+                      {:backgroundColor (material/colors/black)
+                       :foregroundColor (material/colors/white)
+                       :padding (ui/edge-insets-symmetric {:horizontal 48 :vertical 16})
+                       :shape (material/rounded-rectangle-border
+                               {:border-radius (ui/border-radius-circular 30)})})
+              :on-pressed #(js/console.log "Scan QR")
+              :child (ui/row
+                      {:main-axis-size ui/main-axis-size-min
+                       :spacing 8}
+                      (ui/icon material/icons/qr-code-scanner)
+                      (ui/text "Scan"
+                              {:style (ui/text-style {:size 16 :weight ui/font-weight-bold})}))}))}))
+
+(defn menu-button []
+  "Кнопка меню (три линии)"
+  (ui/positioned
+   {:bottom 32
+    :right 16
+    :child (material/floating-action-button
+            {:backgroundColor (material/colors/black)
+             :foregroundColor (material/colors/white)
+             :on-pressed #(js/console.log "Open menu")
+             :child (ui/icon material/icons/menu)})}))
+
+(defn location-button []
+  "Кнопка центрирования на текущем местоположении"
+  (ui/positioned
+   {:top 100
+    :right 16
+    :child (material/floating-action-button
+            {:mini true
+             :backgroundColor (material/colors/white)
+             :foregroundColor (material/colors/black)
+             :on-pressed #(js/console.log "Center on location")
+             :child (ui/icon material/icons/my-location)})}))
+
+(defn zoom-controls []
+  "Кнопки зума"
+  (ui/positioned
+   {:top 160
+    :right 16
+    :child (ui/column
+            {:spacing 8}
+            ;; Zoom in
+            (material/floating-action-button
+             {:mini true
+              :backgroundColor (material/colors/white)
+              :foregroundColor (material/colors/black)
+              :on-pressed #(js/console.log "Zoom in")
+              :child (ui/icon material/icons/add)})
+            ;; Zoom out
+            (material/floating-action-button
+             {:mini true
+              :backgroundColor (material/colors/white)
+              :foregroundColor (material/colors/black)
+              :on-pressed #(js/console.log "Zoom out")
+              :child (ui/icon material/icons/remove)}))}))
+
+(defn map-screen []
+  "Главный экран с картой"
+  (ui/scaffold
+   {:body (ui/stack
+           [(map-view)
+            (scan-button)
+            (menu-button)
+            (location-button)
+            (zoom-controls)])}))

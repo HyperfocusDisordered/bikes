@@ -11,6 +11,7 @@ primary_region = 'sin'
 [env]
   PORT = "3001"
   KARMA_DB_PATH = "/data/karma_rent.db"
+  KARMA_DEV_DB_PATH = "/data/karma_rent_dev.db"
 
 [http_service]
   internal_port = 3001
@@ -23,6 +24,16 @@ primary_region = 'sin'
 [mounts]
   source = "karma_data"
   destination = "/data"
+
+[checks]
+  [checks.health]
+    port = 3001
+    type = "http"
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "60s"
+    method = "GET"
+    path = "/api/health"
 
 [[vm]]
   memory = '1gb'
