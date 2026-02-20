@@ -1116,66 +1116,15 @@
     },
     {
       "parameters": {
-        "mode": "manual",
-        "duplicateItem": false,
-        "assignments": {
-          "assignments": [
-            {
-              "id": "link-field",
-              "name": "Ссылка на каталог",
-              "value": "={{ $json.state.байк_ссылка }}",
-              "type": "string"
-            },
-            {
-              "id": "status-field",
-              "name": "Состояние",
-              "value": "В аренде",
-              "type": "string"
-            }
-          ]
-        },
-        "options": {}
+        "jsCode": "// Find row by catalog link in Extract State output\nconst state = $json.state || {};\nconst link = (state['байк_ссылка'] || '').trim();\nif (!link) return [{ json: { found: false, error: 'no link' } }];\n\n// Read column E via Sheets API using predefined credential\nconst sheetId = '1knpg3fWFiPLu2dFUQYTiOsuD-GRmcICnLKFnBf-EgGE';\nconst range = encodeURIComponent('Байки!E:E');\nconst resp = await this.helpers.httpRequestWithAuthentication.call(this, 'googleApi', {\n  method: 'GET',\n  url: `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}`,\n  json: true\n});\n\nconst rows = resp.values || [];\nlet rowIndex = -1;\nfor (let i = 0; i < rows.length; i++) {\n  if (rows[i][0] && rows[i][0].trim() === link) {\n    rowIndex = i + 1;\n    break;\n  }\n}\n\nif (rowIndex < 1) return [{ json: { found: false, error: 'link not found', link } }];\n\n// Write \"В аренде\" to A{row}\nconst writeRange = encodeURIComponent('Байки!A' + rowIndex);\nawait this.helpers.httpRequestWithAuthentication.call(this, 'googleApi', {\n  method: 'PUT',\n  url: `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${writeRange}?valueInputOption=USER_ENTERED`,\n  headers: { 'Content-Type': 'application/json' },\n  body: { values: [['В аренде']] },\n  json: true\n});\n\nreturn [{ json: { found: true, row: rowIndex, link, status: 'В аренде' } }];"
       },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         2800,
         456
       ],
-      "id": "set-checkin-fields",
-      "name": "Set Checkin Fields"
-    },
-    {
-      "parameters": {
-        "operation": "update",
-        "documentId": {
-          "__rl": true,
-          "value": "1knpg3fWFiPLu2dFUQYTiOsuD-GRmcICnLKFnBf-EgGE",
-          "mode": "id"
-        },
-        "sheetName": {
-          "__rl": true,
-          "value": 379274933,
-          "mode": "id"
-        },
-        "columns": {
-          "mappingMode": "autoMapInputData",
-          "matchingColumns": [
-            "Ссылка на каталог"
-          ]
-        },
-        "options": {
-          "cellFormat": "USER_ENTERED"
-        },
-        "authentication": "serviceAccount"
-      },
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.4,
-      "position": [
-        3000,
-        456
-      ],
-      "id": "checkin-sheets-update",
+      "id": "checkin-find-update",
       "name": "Checkin Байк",
       "credentials": {
         "googleApi": {
@@ -1582,23 +1531,12 @@
       "main": [
         [
           {
-            "node": "Set Checkin Fields",
+            "node": "Checkin Байк",
             "type": "main",
             "index": 0
           }
         ],
         []
-      ]
-    },
-    "Set Checkin Fields": {
-      "main": [
-        [
-          {
-            "node": "Checkin Байк",
-            "type": "main",
-            "index": 0
-          }
-        ]
       ]
     }
   },
