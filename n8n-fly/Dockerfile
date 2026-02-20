@@ -1,0 +1,6 @@
+FROM n8nio/n8n:latest
+
+ENV N8N_PORT=5678
+ENV GENERIC_TIMEZONE=Asia/Bangkok
+
+EXPOSE 5678
