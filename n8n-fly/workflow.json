@@ -1059,7 +1059,7 @@
           "conditions": [
             {
               "id": "cond-free",
-              "leftValue": "={{ $json[\"Состояние\"] }}",
+              "leftValue": "={{ $json[\" \"] }}",
               "rightValue": "Свободен",
               "operator": {
                 "type": "string",
