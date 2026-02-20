@@ -1259,17 +1259,8 @@
     },
     {
       "parameters": {
-        "operation": "update",
+        "operation": "create",
         "tableId": "user_state",
-        "filters": {
-          "conditions": [
-            {
-              "keyName": "jid",
-              "condition": "eq",
-              "keyValue": "={{ $json.sender }}"
-            }
-          ]
-        },
         "fieldsToSend": {
           "fieldValues": [
             {
@@ -1286,7 +1277,9 @@
             }
           ]
         },
-        "options": {}
+        "options": {
+          "onConflict": "jid"
+        }
       },
       "type": "n8n-nodes-base.supabase",
       "typeVersion": 1,
@@ -1315,11 +1308,11 @@
           "conditions": [
             {
               "id": "1a31e63a-1f5a-48c3-9d82-68aace655c2a",
-              "leftValue": "={{ $json.message }}",
+              "leftValue": "={{ $('Get User State').first().json.state?.этап || '' }}",
               "rightValue": "забронирован",
               "operator": {
                 "type": "string",
-                "operation": "contains"
+                "operation": "equals"
               }
             }
           ],
