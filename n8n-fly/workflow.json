@@ -1072,58 +1072,6 @@
         },
         "looseTypeValidation": true
       }
-    },
-    {
-      "parameters": {
-        "operation": "update",
-        "documentId": {
-          "__rl": true,
-          "value": "1knpg3fWFiPLu2dFUQYTiOsuD-GRmcICnLKFnBf-EgGE",
-          "mode": "id"
-        },
-        "sheetName": {
-          "__rl": true,
-          "value": 379274933,
-          "mode": "id"
-        },
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "Состояние": "={{ $fromAI(\"status\", \"Новый статус байка: В аренде\") }}"
-          },
-          "matchingColumns": [
-            "Ссылка на каталог"
-          ]
-        },
-        "options": {
-          "cellFormat": "USER_ENTERED"
-        },
-        "filtersUI": {
-          "values": [
-            {
-              "lookupColumn": "Ссылка на каталог",
-              "lookupValue": "={{ $fromAI(\"catalog_link\", \"Ссылка на каталог байка из таблицы, формат https://wa.me/p/...\") }}"
-            }
-          ]
-        },
-        "authentication": "serviceAccount",
-        "descriptionType": "manual",
-        "toolDescription": "Обновить статус байка в таблице Байки. Вызывай при бронировании — ставь статус В аренде. Параметры: catalog_link (ссылка на каталог байка из данных, https://wa.me/p/...), status (новый статус, обычно В аренде)."
-      },
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.4,
-      "position": [
-        3760,
-        -80
-      ],
-      "id": "update-bike-status",
-      "name": "Update Байки",
-      "credentials": {
-        "googleApi": {
-          "id": "OMzR72oEyu6XISKt",
-          "name": "Google Sheets account_KARMA_RENT"
-        }
-      }
     }
   ],
   "connections": {
@@ -1509,17 +1457,6 @@
           {
             "node": "Aggregate Байки",
             "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Update Байки": {
-      "ai_tool": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "ai_tool",
             "index": 0
           }
         ]
