@@ -1,7 +1,7 @@
 {
-  "updatedAt": "2026-02-20T06:32:20.432Z",
-  "createdAt": "2026-02-14T16:07:58.334Z",
-  "id": "TQkyDMEGaTVJOlvB",
+  "updatedAt": "2026-02-20T15:05:15.420Z",
+  "createdAt": "2026-02-20T13:11:32.879Z",
+  "id": "rC30SNQvTZG9Zhza",
   "name": "Karma_Rent_Workers",
   "description": null,
   "active": true,
@@ -41,7 +41,7 @@
       "name": "Добавление сообщений",
       "credentials": {
         "supabaseApi": {
-          "id": "KQZaTSAuLCvGSSwO",
+          "id": "u1mkv2sS5oh337qr",
           "name": "Supabase Karma_Worker"
         }
       }
@@ -107,7 +107,7 @@
       "name": "Берем сообщения",
       "credentials": {
         "supabaseApi": {
-          "id": "KQZaTSAuLCvGSSwO",
+          "id": "u1mkv2sS5oh337qr",
           "name": "Supabase Karma_Worker"
         }
       }
@@ -207,7 +207,7 @@
             },
             {
               "name": "msg",
-              "value": "={{ $('AI Agent').item.json.output }}"
+              "value": "={{ $('Extract State').item.json.output }}"
             }
           ]
         },
@@ -253,7 +253,8 @@
           "cachedResultName": "Байки",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1knpg3fWFiPLu2dFUQYTiOsuD-GRmcICnLKFnBf-EgGE/edit#gid=379274933"
         },
-        "options": {}
+        "options": {},
+        "authentication": "serviceAccount"
       },
       "type": "n8n-nodes-base.googleSheetsTool",
       "typeVersion": 4.7,
@@ -264,8 +265,8 @@
       "id": "d7cc99c2-bac6-447b-9b40-832b140e7beb",
       "name": "Get row(s) in sheet in Google Sheets",
       "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "hNuIzZIkQLwvM5fn",
+        "googleApi": {
+          "id": "OMzR72oEyu6XISKt",
           "name": "Google Sheets account_KARMA_RENT"
         }
       }
@@ -286,7 +287,8 @@
           "cachedResultName": "Тарифы",
           "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1knpg3fWFiPLu2dFUQYTiOsuD-GRmcICnLKFnBf-EgGE/edit#gid=807819994"
         },
-        "options": {}
+        "options": {},
+        "authentication": "serviceAccount"
       },
       "type": "n8n-nodes-base.googleSheetsTool",
       "typeVersion": 4.7,
@@ -297,8 +299,8 @@
       "id": "95a6bbde-4c49-4100-87c3-fc05d3f14eb2",
       "name": "Get row(s) in sheet in Google Sheets Price",
       "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "hNuIzZIkQLwvM5fn",
+        "googleApi": {
+          "id": "OMzR72oEyu6XISKt",
           "name": "Google Sheets account_KARMA_RENT"
         }
       }
@@ -417,7 +419,8 @@
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
         },
-        "options": {}
+        "options": {},
+        "authentication": "serviceAccount"
       },
       "type": "n8n-nodes-base.googleSheetsTool",
       "typeVersion": 4.7,
@@ -428,8 +431,8 @@
       "id": "aeb8f2bf-503c-4af0-a8ac-3e1074972c42",
       "name": "Update row in sheet in Google Sheets",
       "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "hNuIzZIkQLwvM5fn",
+        "googleApi": {
+          "id": "OMzR72oEyu6XISKt",
           "name": "Google Sheets account_KARMA_RENT"
         }
       }
@@ -492,7 +495,7 @@
       "name": "Сборка сообщений",
       "credentials": {
         "supabaseApi": {
-          "id": "KQZaTSAuLCvGSSwO",
+          "id": "u1mkv2sS5oh337qr",
           "name": "Supabase Karma_Worker"
         }
       }
@@ -536,7 +539,7 @@
       "name": "OpenAI Chat Model",
       "credentials": {
         "openAiApi": {
-          "id": "cE63FX9za2dolIQA",
+          "id": "XF1cM38UXaYP6qBb",
           "name": "OpenAi D1Motors"
         }
       }
@@ -814,7 +817,7 @@
       "name": "Analyze image1",
       "credentials": {
         "openAiApi": {
-          "id": "RiO4nO6XHyozGS1E",
+          "id": "AOBRqgI9aa99plds",
           "name": "OpenAi Karma_Rent"
         }
       }
@@ -963,7 +966,7 @@
       "name": "OpenAI1",
       "credentials": {
         "openAiApi": {
-          "id": "RiO4nO6XHyozGS1E",
+          "id": "AOBRqgI9aa99plds",
           "name": "OpenAi Karma_Rent"
         }
       }
@@ -1140,7 +1143,8 @@
           "attemptToConvertTypes": false,
           "convertFieldsToString": false
         },
-        "options": {}
+        "options": {},
+        "authentication": "serviceAccount"
       },
       "type": "n8n-nodes-base.googleSheetsTool",
       "typeVersion": 4.7,
@@ -1151,8 +1155,8 @@
       "id": "045c8e67-533e-4b6d-85bd-202328732113",
       "name": "Update row in sheet in Google Sheets2",
       "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "hNuIzZIkQLwvM5fn",
+        "googleApi": {
+          "id": "OMzR72oEyu6XISKt",
           "name": "Google Sheets account_KARMA_RENT"
         }
       }
@@ -1209,7 +1213,7 @@
             {
               "keyName": "jid",
               "condition": "eq",
-              "keyValue": "={{ $json.sender }}"
+              "keyValue": "={{ $('Edit Fields4').first().json.sender }}"
             }
           ]
         },
@@ -1226,14 +1230,15 @@
       "name": "Get User State",
       "credentials": {
         "supabaseApi": {
-          "id": "wbGz4Jz68CmVoiMd",
-          "name": "Supabase account"
+          "id": "u1mkv2sS5oh337qr",
+          "name": "Supabase Karma_Worker"
         }
-      }
+      },
+      "alwaysOutputData": true
     },
     {
       "parameters": {
-        "jsCode": "// Get state from Supabase\nconst items = $input.all();\nconst summaData = $('Сумма').first().json;\nconst sender = summaData.sender || '';\nconst message = summaData.message || '';\n\n// Build state context\nlet stateContext = '';\nif (items.length > 0 && items[0].json.state && Object.keys(items[0].json.state).length > 0) {\n  const state = items[0].json.state;\n  \n  // Check state reset: if updated_at > 24h, reset\n  const updatedAt = items[0].json.updated_at;\n  if (updatedAt) {\n    const hoursAgo = (Date.now() - new Date(updatedAt).getTime()) / 3600000;\n    if (hoursAgo > 12) {\n      // State expired, start fresh\n      return [{ json: { sender, message: 'ДАННЫЕ КЛИЕНТА: новый диалог (предыдущий >12ч назад)\\n---\\n' + message } }];\n    }\n  }\n  \n  stateContext = 'ДАННЫЕ КЛИЕНТА:\\n';\n  for (const [key, value] of Object.entries(state)) {\n    stateContext += '[' + key + ': ' + value + ']\\n';\n  }\n}\n\n// Flow rules — always injected\nconst flowRules = `\nФЛОУ ДИАЛОГА:\n1. ПРИВЕТСТВИЕ → спроси: сколько дней? для города/дальних? опыт?\n2. ВЫЯСНЕНИЕ → клиент ответил на вопросы → вызови Get Sheets → покажи свободные байки\n3. ПОДБОР → показал байки, клиент выбирает\n4. ВЫБОР → клиент сказал \"хочу этот\"/\"беру\" → подтверди выбор, попроси фото паспорта/ID\n5. ПАСПОРТ → ждём фото документа. [ДОКУМЕНТ]=бронируй, [ФОТО]=попроси паспорт заново. Если клиент хочет поменять байк или задаёт вопросы — верни на этап ПОДБОР/ВЫЯСНЕНИЕ\n6. ЗАБРОНИРОВАН → если клиент спрашивает про изменение брони/отмену/детали — ответь что с ним свяжется оператор для уточнения деталей. На всё остальное — НЕ отвечай (молчи, операторы разберутся).\n\nСТОПСЛОВА — если клиент говорит: \"отмена\"/\"не надо\"/\"передумал\"/\"cancel\"/\"no thanks\":\n→ НЕ настаивай, но мягко оставь дверь открытой\n→ Примеры: \"Хорошо! Если передумаете — мы всегда на связи 😊\" / \"Без проблем! Будем рады помочь, когда будете готовы 🤙\"\n→ Поставь этап: \"отменён\"\n→ Одно вежливое сообщение, НЕ уговаривай повторно\n\nПРАВИЛО: обновляй этап в STATE при КАЖДОМ переходе!\n`;\n\nreturn [{\n  json: {\n    sender: sender,\n    message: stateContext + flowRules + '---\\nСообщение клиента: ' + message\n  }\n}];"
+        "jsCode": "// Get state from Supabase\nconst items = $input.all();\nconst summaData = $('Сумма').first().json;\nconst senderData = $('Edit Fields4').first().json;\nconst sender = senderData.sender || '';\nconst message = summaData.message || '';\n\n// Build state context\nlet stateContext = '';\nif (items.length > 0 && items[0].json.state && Object.keys(items[0].json.state).length > 0) {\n  const state = items[0].json.state;\n  \n  // Check state reset: if updated_at > 24h, reset\n  const updatedAt = items[0].json.updated_at;\n  if (updatedAt) {\n    const hoursAgo = (Date.now() - new Date(updatedAt).getTime()) / 3600000;\n    if (hoursAgo > 12) {\n      // State expired, start fresh\n      return [{ json: { sender, message: 'ДАННЫЕ КЛИЕНТА: новый диалог (предыдущий >12ч назад)\\n---\\n' + message } }];\n    }\n  }\n  \n  stateContext = 'ДАННЫЕ КЛИЕНТА:\\n';\n  for (const [key, value] of Object.entries(state)) {\n    stateContext += '[' + key + ': ' + value + ']\\n';\n  }\n}\n\n// Flow rules — always injected\nconst flowRules = `\nФЛОУ ДИАЛОГА:\n1. ПРИВЕТСТВИЕ → спроси: сколько дней? для города/дальних? опыт?\n2. ВЫЯСНЕНИЕ → клиент ответил на вопросы → вызови Get Sheets → покажи свободные байки\n3. ПОДБОР → показал байки, клиент выбирает\n4. ВЫБОР → клиент сказал \"хочу этот\"/\"беру\" → подтверди выбор, попроси фото паспорта/ID\n5. ПАСПОРТ → ждём фото документа. [ДОКУМЕНТ]=бронируй, [ФОТО]=попроси паспорт заново. Если клиент хочет поменять байк или задаёт вопросы — верни на этап ПОДБОР/ВЫЯСНЕНИЕ\n6. ЗАБРОНИРОВАН → если клиент спрашивает про изменение брони/отмену/детали — ответь что с ним свяжется оператор для уточнения деталей. На всё остальное — НЕ отвечай (молчи, операторы разберутся).\n\nСТОПСЛОВА — если клиент говорит: \"отмена\"/\"не надо\"/\"передумал\"/\"cancel\"/\"no thanks\":\n→ НЕ настаивай, но мягко оставь дверь открытой\n→ Примеры: \"Хорошо! Если передумаете — мы всегда на связи 😊\" / \"Без проблем! Будем рады помочь, когда будете готовы 🤙\"\n→ Поставь этап: \"отменён\"\n→ Одно вежливое сообщение, НЕ уговаривай повторно\n\nПРАВИЛО: обновляй этап в STATE при КАЖДОМ переходе!\n`;\n\nreturn [{\n  json: {\n    sender: sender,\n    message: stateContext + flowRules + '---\\nСообщение клиента: ' + message\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1246,7 +1251,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Get AI Agent response\nconst aiOutput = $input.first().json.output || $input.first().json.text || '';\nconst sender = $('Сумма').first().json.sender || '';\n\n// Extract state updates from AI response\n// AI should output STATE: {...} block, but we also parse structured info\nconst state = {};\n\n// Try to extract from STATE: block if AI outputs it\nconst stateMatch = aiOutput.match(/STATE:\\s*\\{([^}]+)\\}/);\nif (stateMatch) {\n  try {\n    const parsed = JSON.parse('{' + stateMatch[1] + '}');\n    Object.assign(state, parsed);\n  } catch(e) {}\n}\n\n// Also extract from [key: value] patterns\nconst kvMatches = aiOutput.matchAll(/\\[([^:]+):\\s*([^\\]]+)\\]/g);\nfor (const m of kvMatches) {\n  state[m[1].trim()] = m[2].trim();\n}\n\n// Clean response for WhatsApp (remove STATE block)\nlet cleanOutput = aiOutput.replace(/STATE:\\s*\\{[^}]+\\}\\n?/g, '').trim();\n\nreturn [{\n  json: {\n    output: cleanOutput,\n    sender: sender,\n    state: state,\n    hasState: Object.keys(state).length > 0\n  }\n}];"
+        "jsCode": "// Get AI Agent response\nconst aiOutput = $input.first().json.output || $input.first().json.text || '';\nconst sender = $('Edit Fields4').first().json.sender || '';\n\nconst state = {};\n\n// Extract STATE: {...} block (primary method)\nconst stateMatch = aiOutput.match(/STATE:\\s*\\{([^}]+)\\}/);\nif (stateMatch) {\n  try {\n    const parsed = JSON.parse('{' + stateMatch[1] + '}');\n    Object.assign(state, parsed);\n  } catch(e) {}\n}\n\n// Clean response for WhatsApp (remove STATE block)\nlet cleanOutput = aiOutput.replace(/STATE:\\s*\\{[^}]+\\}\\n?/g, '').trim();\n\nreturn [{\n  json: {\n    output: cleanOutput,\n    sender: sender,\n    state: state,\n    hasState: Object.keys(state).length > 0\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -1259,42 +1264,17 @@
     },
     {
       "parameters": {
-        "operation": "create",
-        "tableId": "user_state",
-        "fieldsToSend": {
-          "fieldValues": [
-            {
-              "fieldName": "jid",
-              "fieldValue": "={{ $json.sender }}"
-            },
-            {
-              "fieldName": "state",
-              "fieldValue": "={{ JSON.stringify($json.state) }}"
-            },
-            {
-              "fieldName": "updated_at",
-              "fieldValue": "={{ new Date().toISOString() }}"
-            }
-          ]
-        },
-        "options": {
-          "onConflict": "jid"
-        }
+        "jsCode": "// Upsert user state to Supabase\nconst sender = $json.sender || '';\nconst state = $json.state || {};\n\nif (!sender) {\n  return [{ json: { success: false, error: 'no sender' } }];\n}\n\nconst key = $env.SUPABASE_SERVICE_ROLE_KEY;\nconst url = 'https://upjyomatlonfgygoniir.supabase.co/rest/v1/user_state';\n\nconst response = await this.helpers.httpRequest({\n  method: 'POST',\n  url: url,\n  headers: {\n    'apikey': key,\n    'Authorization': 'Bearer ' + key,\n    'Content-Type': 'application/json',\n    'Prefer': 'resolution=merge-duplicates'\n  },\n  body: {\n    jid: sender,\n    state: state,\n    updated_at: new Date().toISOString()\n  },\n  returnFullResponse: true\n});\n\nreturn [{ json: { success: true, status: response.statusCode || 201, sender } }];"
       },
-      "type": "n8n-nodes-base.supabase",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         2400,
         256
       ],
       "id": "e16baf7d-8a56-4ea9-8a58-0a97e02dea96",
       "name": "Save User State",
-      "credentials": {
-        "supabaseApi": {
-          "id": "wbGz4Jz68CmVoiMd",
-          "name": "Supabase account"
-        }
-      }
+      "credentials": {}
     },
     {
       "parameters": {
@@ -1735,57 +1715,54 @@
     "availableInMCP": false
   },
   "staticData": null,
-  "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": "4d95559267fbb3fd90ca66bf0da9ac536bc30b9dad3b01ae905ad2418a284aa3"
-  },
-  "pinData": {},
-  "versionId": "09241303-a785-4314-8549-9a72e8c57b18",
-  "activeVersionId": "09241303-a785-4314-8549-9a72e8c57b18",
-  "versionCounter": 54,
+  "meta": null,
+  "pinData": null,
+  "versionId": "29e0cbca-c8f5-46fd-aa80-a061593520ea",
+  "activeVersionId": "29e0cbca-c8f5-46fd-aa80-a061593520ea",
+  "versionCounter": 14,
   "triggerCount": 1,
   "shared": [
     {
-      "updatedAt": "2026-02-14T16:07:58.338Z",
-      "createdAt": "2026-02-14T16:07:58.338Z",
+      "updatedAt": "2026-02-20T13:11:32.883Z",
+      "createdAt": "2026-02-20T13:11:32.883Z",
       "role": "workflow:owner",
-      "workflowId": "TQkyDMEGaTVJOlvB",
-      "projectId": "2cpwvbbD59WEdKZi",
+      "workflowId": "rC30SNQvTZG9Zhza",
+      "projectId": "PbCq18r4FC91E0Bg",
       "project": {
-        "updatedAt": "2026-02-14T15:55:36.909Z",
-        "createdAt": "2026-02-14T15:34:42.543Z",
-        "id": "2cpwvbbD59WEdKZi",
-        "name": "Denis Ovchar <denis@karmarent.app>",
+        "updatedAt": "2026-02-20T11:16:55.833Z",
+        "createdAt": "2026-02-20T11:03:31.750Z",
+        "id": "PbCq18r4FC91E0Bg",
+        "name": "Denis Karmarent <denis@karmarent.app>",
         "type": "personal",
         "icon": null,
         "description": null,
-        "creatorId": "5e6708ad-c08f-4c67-a285-fb076a605ef0",
+        "creatorId": "32ebda6a-f598-4a39-9108-5156d43057e3",
         "projectRelations": [
           {
-            "updatedAt": "2026-02-14T15:34:42.543Z",
-            "createdAt": "2026-02-14T15:34:42.543Z",
-            "userId": "5e6708ad-c08f-4c67-a285-fb076a605ef0",
-            "projectId": "2cpwvbbD59WEdKZi",
+            "updatedAt": "2026-02-20T11:03:31.824Z",
+            "createdAt": "2026-02-20T11:03:31.824Z",
+            "userId": "32ebda6a-f598-4a39-9108-5156d43057e3",
+            "projectId": "PbCq18r4FC91E0Bg",
             "user": {
-              "updatedAt": "2026-02-20T06:28:24.000Z",
-              "createdAt": "2026-02-14T15:34:42.148Z",
-              "id": "5e6708ad-c08f-4c67-a285-fb076a605ef0",
+              "updatedAt": "2026-02-20T14:34:00.682Z",
+              "createdAt": "2026-02-20T11:03:19.748Z",
+              "id": "32ebda6a-f598-4a39-9108-5156d43057e3",
               "email": "denis@karmarent.app",
               "firstName": "Denis",
-              "lastName": "Ovchar",
+              "lastName": "Karmarent",
               "personalizationAnswers": {
                 "version": "v4",
-                "personalization_survey_submitted_at": "2026-02-14T15:55:47.370Z",
+                "personalization_survey_submitted_at": "2026-02-20T11:19:33.722Z",
                 "personalization_survey_n8n_version": "2.7.5"
               },
               "settings": {
                 "userActivated": true,
-                "firstSuccessfulWorkflowId": "TQkyDMEGaTVJOlvB",
-                "userActivatedAt": 1771091240216
+                "firstSuccessfulWorkflowId": "rC30SNQvTZG9Zhza",
+                "userActivatedAt": 1771598040644
               },
               "disabled": false,
               "mfaEnabled": false,
-              "lastActiveAt": "2026-02-19",
+              "lastActiveAt": "2026-02-20",
               "isPending": false
             }
           }
@@ -1795,10 +1772,10 @@
   ],
   "tags": [],
   "activeVersion": {
-    "updatedAt": "2026-02-20T06:32:20.433Z",
-    "createdAt": "2026-02-20T06:32:20.433Z",
-    "versionId": "09241303-a785-4314-8549-9a72e8c57b18",
-    "workflowId": "TQkyDMEGaTVJOlvB",
+    "updatedAt": "2026-02-20T15:05:15.423Z",
+    "createdAt": "2026-02-20T15:05:15.423Z",
+    "versionId": "29e0cbca-c8f5-46fd-aa80-a061593520ea",
+    "workflowId": "rC30SNQvTZG9Zhza",
     "nodes": [
       {
         "parameters": {
@@ -1834,7 +1811,7 @@
         "name": "Добавление сообщений",
         "credentials": {
           "supabaseApi": {
-            "id": "KQZaTSAuLCvGSSwO",
+            "id": "u1mkv2sS5oh337qr",
             "name": "Supabase Karma_Worker"
           }
         }
@@ -1900,7 +1877,7 @@
         "name": "Берем сообщения",
         "credentials": {
           "supabaseApi": {
-            "id": "KQZaTSAuLCvGSSwO",
+            "id": "u1mkv2sS5oh337qr",
             "name": "Supabase Karma_Worker"
           }
         }
@@ -1952,7 +1929,7 @@
           "text": "={{ $json.message }}",
           "hasOutputParser": true,
           "options": {
-            "systemMessage": "=Ты менеджер по аренде байков KarmaRent городе Нячанг. \nЕсли клиент ошибаеться то говори что мы работаем только в этих городах. Если нет, то не нужно напоминать об этом\n\nЕсли есть непонимание — перефразируй вопрос. \nДобавляй смайлики там где это уместно, в начале строк и  там где уместно (Байк, Фото, Аренда, Депозит  и т.д.)\nВсегда общайся на языке обращения клиента, клиент может писать на Вьетнамском, английском, Русском, Укр, Казахском и так далее!!\n\nПример диалога на английском:\nClient: Hi! I’m looking for a bike for a few days in Nha Trang.\nAssistant:\n– How many days do you need the bike for?\n– Will you ride alone or with a passenger?\n– Do you prefer a sporty model or something more comfortable?\n\n\n\nПример диалога на испанском:\nCliente: ¡Hola! Quiero alquilar una moto para dos días.\nAsistente:\n– ¿En qué ciudad la necesitas?\n– ¿Prefieres un modelo automático o manual?\n– ¿Vas a conducir solo o con pasajero?\n\n1. Первое сообщение клиенту (пример): \n\nПривет! 😊 Давайте подберем байк. Пожалуйста, ответьте на несколько вопросов:\n\n– На сколько дней планируете аренду?\n– Байк нужен для города или дальних поездок?\n– Есть ли опыт вождения?\n\nЕсли аренда до 3 дней, напиши, что так невыгодно: чем больше дней, тем выгоднее, если все же клиенту нужно меньше чем на 3 дня, то предложи свободные варианты не надо говорить об выгоде если клиент не упоминал об этом или выбрал менее чем на 3 дня! \nПри аренде от 3 дней — дарим подборку интересных мест по Нячангу (заправки, что посмотреть, лайфхаки, экскурсии).\n\nПосле первого блока вопросов:\nВ Tool \"Get row(s) in sheet in Google Sheets\":\n\nНайти байки, у которых состояние (поле A) = \"Свободен\" и вышли клиенту \nПредлагай только свободные байки (статус “Свободен”) придумывать другие байки что бы угодить клиенту запрещено, используй только те байки что есть в ноде \"Get row(s) in sheet in Google Sheets\"\n\nСформировать структурированный ответ по типу: \nМодель (поле B)\nФото (поле E)\nСостояние (поле A)\nАксессуары (поле F)\n\n2. Второе сообщение клиенту со свободными байками взятые в Tool \"Get row(s) in sheet in Google Sheets\"\n(пример): \n\n- Модель (поле B)\n- Фото (поле E)\n- Состояние (поле A)\n- Аксессуары (поле F)\n\nНапомнить клиенту о:\n– Если выбран байк высокого класса и у клиента нет опыта — предупреди про мотошколу (урок 300 000 VND, только после урока возможна аренда).\n– Для каждого байка: укажи модель, класс, аксессуары, приложи фото без выгрузки таблицы в markdown.\n– Кратко опиши преимущества выбранной модели и удобство для клиента.\n– Если ни один байк не подходит, сообщи об этом вежливо на языке клиента."
+            "systemMessage": "=Ты менеджер по аренде байков KarmaRent городе Нячанг. \nЕсли клиент ошибаеться то говори что мы работаем только в этих городах. Если нет, то не нужно напоминать об этом\n\nЕсли есть непонимание — перефразируй вопрос. \nДобавляй смайлики там где это уместно, в начале строк и  там где уместно (Байк, Фото, Аренда, Депозит  и т.д.)\nВсегда общайся на языке обращения клиента, клиент может писать на Вьетнамском, английском, Русском, Укр, Казахском и так далее!!\n\nПример диалога на английском:\nClient: Hi! I’m looking for a bike for a few days in Nha Trang.\nAssistant:\n– How many days do you need the bike for?\n– Will you ride alone or with a passenger?\n– Do you prefer a sporty model or something more comfortable?\n\n\n\nПример диалога на испанском:\nCliente: ¡Hola! Quiero alquilar una moto para dos días.\nAsistente:\n– ¿En qué ciudad la necesitas?\n– ¿Prefieres un modelo automático o manual?\n– ¿Vas a conducir solo o con pasajero?\n\n1. Первое сообщение клиенту (пример): \n\nПривет! 😊 Давайте подберем байк. Пожалуйста, ответьте на несколько вопросов:\n\n– На сколько дней планируете аренду?\n– Байк нужен для города или дальних поездок?\n– Есть ли опыт вождения?\n\nЕсли аренда до 3 дней, напиши, что так невыгодно: чем больше дней, тем выгоднее, если все же клиенту нужно меньше чем на 3 дня, то предложи свободные варианты не надо говорить об выгоде если клиент не упоминал об этом или выбрал менее чем на 3 дня! \nПри аренде от 3 дней — дарим подборку интересных мест по Нячангу (заправки, что посмотреть, лайфхаки, экскурсии).\nПри аренде от 7 дней — бесплатная доставка байка по городу!\n\nПосле первого блока вопросов:\nВ Tool \"Get row(s) in sheet in Google Sheets\":\n\nНайти байки, у которых состояние (поле A) = \"Свободен\" и вышли клиенту \nПредлагай только свободные байки (статус “Свободен”) придумывать другие байки что бы угодить клиенту запрещено, используй только те байки что есть в ноде \"Get row(s) in sheet in Google Sheets\"\n\nСформировать структурированный ответ по типу: \nМодель (поле B)\nФото (поле E)\nСостояние (поле A)\nАксессуары (поле F)\n\n2. Второе сообщение клиенту со свободными байками взятые в Tool \"Get row(s) in sheet in Google Sheets\"\n(пример): \n\n- Модель (поле B)\n- Фото (поле E)\n- Состояние (поле A)\n- Аксессуары (поле F)\n\nНапомнить клиенту о:\n– Для каждого байка: укажи модель, класс, аксессуары, приложи фото без выгрузки таблицы в markdown.\n– Кратко опиши преимущества выбранной модели и удобство для клиента.\n– Если ни один байк не подходит, сообщи об этом вежливо на языке клиента.\n\n\nПАСПОРТ:\nКогда этап = \"паспорт\" и клиент шлёт фото:\n- Если в сообщении есть [ДОКУМЕНТ] — это паспорт, вызови тулзу Update для бронирования, поставь этап \"забронирован\" и ответь: \"Спасибо! Бронь подтверждена ✅ Наш менеджер скоро свяжется с вами для уточнения деталей 😊\"\n- Если в сообщении есть [ФОТО] но НЕ [ДОКУМЕНТ] — это НЕ паспорт. Вежливо попроси прислать фото паспорта или ID, например: \"Это не похоже на документ 😊 Пришлите, пожалуйста, фото паспорта или ID для подтверждения брони\"\n\nВАЖНО — ДАННЫЕ КЛИЕНТА:\nВ начале сообщения могут быть ДАННЫЕ КЛИЕНТА в формате [ключ: значение]. Используй их — это то, что клиент уже рассказал ранее. НЕ переспрашивай то, что уже известно.\n\nВ конце КАЖДОГО своего ответа добавляй блок STATE с обновлёнными данными клиента:\nSTATE: {\"дней\": \"7\", \"опыт\": \"есть\", \"байк\": \"Honda Air Blade (row 5)\", \"этап\": \"выбор\"}\n\nЭтапы: приветствие → выяснение → подбор → выбор → паспорт → забронирован\nОбновляй STATE при каждом новом ответе с актуальными данными."
           }
         },
         "type": "@n8n/n8n-nodes-langchain.agent",
@@ -2057,8 +2034,8 @@
         "id": "d7cc99c2-bac6-447b-9b40-832b140e7beb",
         "name": "Get row(s) in sheet in Google Sheets",
         "credentials": {
-          "googleSheetsOAuth2Api": {
-            "id": "hNuIzZIkQLwvM5fn",
+          "googleApi": {
+            "id": "OMzR72oEyu6XISKt",
             "name": "Google Sheets account_KARMA_RENT"
           }
         }
@@ -2090,8 +2067,8 @@
         "id": "95a6bbde-4c49-4100-87c3-fc05d3f14eb2",
         "name": "Get row(s) in sheet in Google Sheets Price",
         "credentials": {
-          "googleSheetsOAuth2Api": {
-            "id": "hNuIzZIkQLwvM5fn",
+          "googleApi": {
+            "id": "OMzR72oEyu6XISKt",
             "name": "Google Sheets account_KARMA_RENT"
           }
         }
@@ -2221,8 +2198,8 @@
         "id": "aeb8f2bf-503c-4af0-a8ac-3e1074972c42",
         "name": "Update row in sheet in Google Sheets",
         "credentials": {
-          "googleSheetsOAuth2Api": {
-            "id": "hNuIzZIkQLwvM5fn",
+          "googleApi": {
+            "id": "OMzR72oEyu6XISKt",
             "name": "Google Sheets account_KARMA_RENT"
           }
         }
@@ -2285,7 +2262,7 @@
         "name": "Сборка сообщений",
         "credentials": {
           "supabaseApi": {
-            "id": "KQZaTSAuLCvGSSwO",
+            "id": "u1mkv2sS5oh337qr",
             "name": "Supabase Karma_Worker"
           }
         }
@@ -2315,7 +2292,7 @@
           "model": {
             "__rl": true,
             "mode": "list",
-            "value": "gpt-4.1-mini"
+            "value": "gpt-4o-mini"
           },
           "options": {}
         },
@@ -2329,7 +2306,7 @@
         "name": "OpenAI Chat Model",
         "credentials": {
           "openAiApi": {
-            "id": "cE63FX9za2dolIQA",
+            "id": "XF1cM38UXaYP6qBb",
             "name": "OpenAi D1Motors"
           }
         }
@@ -2593,7 +2570,7 @@
             "mode": "list",
             "cachedResultName": "GPT-4O"
           },
-          "text": "напиши текстом описание на изображение без коментариев просто напиши что написано",
+          "text": "Посмотри на изображение.\n\nЕсли это похоже на документ (паспорт, ID, водительское удостоверение, права) — начни ответ с тега [ДОКУМЕНТ].\nЕсли это не документ — начни с тега [ФОТО].\n\nПосле тега — кратко опиши что на изображении.",
           "inputType": "base64",
           "options": {}
         },
@@ -2607,7 +2584,7 @@
         "name": "Analyze image1",
         "credentials": {
           "openAiApi": {
-            "id": "RiO4nO6XHyozGS1E",
+            "id": "AOBRqgI9aa99plds",
             "name": "OpenAi Karma_Rent"
           }
         }
@@ -2756,7 +2733,7 @@
         "name": "OpenAI1",
         "credentials": {
           "openAiApi": {
-            "id": "RiO4nO6XHyozGS1E",
+            "id": "AOBRqgI9aa99plds",
             "name": "OpenAi Karma_Rent"
           }
         }
@@ -2944,8 +2921,8 @@
         "id": "045c8e67-533e-4b6d-85bd-202328732113",
         "name": "Update row in sheet in Google Sheets2",
         "credentials": {
-          "googleSheetsOAuth2Api": {
-            "id": "hNuIzZIkQLwvM5fn",
+          "googleApi": {
+            "id": "OMzR72oEyu6XISKt",
             "name": "Google Sheets account_KARMA_RENT"
           }
         }
@@ -2992,6 +2969,145 @@
         ],
         "id": "phone-filter-node-new",
         "name": "Phone Filter"
+      },
+      {
+        "parameters": {
+          "operation": "getAll",
+          "tableId": "user_state",
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "jid",
+                "condition": "eq",
+                "keyValue": "={{ $json.sender }}"
+              }
+            ]
+          },
+          "limit": 1,
+          "options": {}
+        },
+        "type": "n8n-nodes-base.supabase",
+        "typeVersion": 1,
+        "position": [
+          2900,
+          -304
+        ],
+        "id": "fe9ca20f-a784-400d-9cfb-37ce29a6f6f8",
+        "name": "Get User State",
+        "credentials": {
+          "supabaseApi": {
+            "id": "u1mkv2sS5oh337qr",
+            "name": "Supabase Karma_Worker"
+          }
+        },
+        "alwaysOutputData": true
+      },
+      {
+        "parameters": {
+          "jsCode": "// Get state from Supabase\nconst items = $input.all();\nconst summaData = $('Сумма').first().json;\nconst senderData = $('Edit Fields4').first().json;\nconst sender = senderData.sender || '';\nconst message = summaData.message || '';\n\n// Build state context\nlet stateContext = '';\nif (items.length > 0 && items[0].json.state && Object.keys(items[0].json.state).length > 0) {\n  const state = items[0].json.state;\n  \n  // Check state reset: if updated_at > 24h, reset\n  const updatedAt = items[0].json.updated_at;\n  if (updatedAt) {\n    const hoursAgo = (Date.now() - new Date(updatedAt).getTime()) / 3600000;\n    if (hoursAgo > 12) {\n      // State expired, start fresh\n      return [{ json: { sender, message: 'ДАННЫЕ КЛИЕНТА: новый диалог (предыдущий >12ч назад)\\n---\\n' + message } }];\n    }\n  }\n  \n  stateContext = 'ДАННЫЕ КЛИЕНТА:\\n';\n  for (const [key, value] of Object.entries(state)) {\n    stateContext += '[' + key + ': ' + value + ']\\n';\n  }\n}\n\n// Flow rules — always injected\nconst flowRules = `\nФЛОУ ДИАЛОГА:\n1. ПРИВЕТСТВИЕ → спроси: сколько дней? для города/дальних? опыт?\n2. ВЫЯСНЕНИЕ → клиент ответил на вопросы → вызови Get Sheets → покажи свободные байки\n3. ПОДБОР → показал байки, клиент выбирает\n4. ВЫБОР → клиент сказал \"хочу этот\"/\"беру\" → подтверди выбор, попроси фото паспорта/ID\n5. ПАСПОРТ → ждём фото документа. [ДОКУМЕНТ]=бронируй, [ФОТО]=попроси паспорт заново. Если клиент хочет поменять байк или задаёт вопросы — верни на этап ПОДБОР/ВЫЯСНЕНИЕ\n6. ЗАБРОНИРОВАН → если клиент спрашивает про изменение брони/отмену/детали — ответь что с ним свяжется оператор для уточнения деталей. На всё остальное — НЕ отвечай (молчи, операторы разберутся).\n\nСТОПСЛОВА — если клиент говорит: \"отмена\"/\"не надо\"/\"передумал\"/\"cancel\"/\"no thanks\":\n→ НЕ настаивай, но мягко оставь дверь открытой\n→ Примеры: \"Хорошо! Если передумаете — мы всегда на связи 😊\" / \"Без проблем! Будем рады помочь, когда будете готовы 🤙\"\n→ Поставь этап: \"отменён\"\n→ Одно вежливое сообщение, НЕ уговаривай повторно\n\nПРАВИЛО: обновляй этап в STATE при КАЖДОМ переходе!\n`;\n\nreturn [{\n  json: {\n    sender: sender,\n    message: stateContext + flowRules + '---\\nСообщение клиента: ' + message\n  }\n}];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          3060,
+          -304
+        ],
+        "id": "d858893a-adb6-401f-9d26-db806f1c43d1",
+        "name": "Inject State"
+      },
+      {
+        "parameters": {
+          "jsCode": "// Get AI Agent response\nconst aiOutput = $input.first().json.output || $input.first().json.text || '';\nconst sender = $('Edit Fields4').first().json.sender || '';\n\n// Extract state updates from AI response\n// AI should output STATE: {...} block, but we also parse structured info\nconst state = {};\n\n// Try to extract from STATE: block if AI outputs it\nconst stateMatch = aiOutput.match(/STATE:\\s*\\{([^}]+)\\}/);\nif (stateMatch) {\n  try {\n    const parsed = JSON.parse('{' + stateMatch[1] + '}');\n    Object.assign(state, parsed);\n  } catch(e) {}\n}\n\n// Also extract from [key: value] patterns\nconst kvMatches = aiOutput.matchAll(/\\[([^:]+):\\s*([^\\]]+)\\]/g);\nfor (const m of kvMatches) {\n  state[m[1].trim()] = m[2].trim();\n}\n\n// Clean response for WhatsApp (remove STATE block)\nlet cleanOutput = aiOutput.replace(/STATE:\\s*\\{[^}]+\\}\\n?/g, '').trim();\n\nreturn [{\n  json: {\n    output: cleanOutput,\n    sender: sender,\n    state: state,\n    hasState: Object.keys(state).length > 0\n  }\n}];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2200,
+          256
+        ],
+        "id": "3555a285-2983-42fb-a95c-ff6edff24a5e",
+        "name": "Extract State"
+      },
+      {
+        "parameters": {
+          "operation": "create",
+          "tableId": "user_state",
+          "options": {
+            "onConflict": "jid"
+          },
+          "fieldsUi": {
+            "fieldValues": [
+              {
+                "fieldId": "jid",
+                "fieldValue": "={{ $json.sender }}"
+              },
+              {
+                "fieldId": "state",
+                "fieldValue": "={{ JSON.stringify($json.state) }}"
+              },
+              {
+                "fieldId": "updated_at",
+                "fieldValue": "={{ new Date().toISOString() }}"
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.supabase",
+        "typeVersion": 1,
+        "position": [
+          2400,
+          256
+        ],
+        "id": "e16baf7d-8a56-4ea9-8a58-0a97e02dea96",
+        "name": "Save User State",
+        "credentials": {
+          "supabaseApi": {
+            "id": "u1mkv2sS5oh337qr",
+            "name": "Supabase Karma_Worker"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": false,
+              "leftValue": "",
+              "typeValidation": "loose",
+              "version": 2
+            },
+            "conditions": [
+              {
+                "id": "check-booked",
+                "leftValue": "={{ $('Get User State').first().json.state?.этап || '' }}",
+                "rightValue": "забронирован",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                }
+              },
+              {
+                "id": "check-cancelled",
+                "leftValue": "={{ $('Get User State').first().json.state?.этап || '' }}",
+                "rightValue": "отменён",
+                "operator": {
+                  "type": "string",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "or"
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2.2,
+        "position": [
+          3200,
+          -304
+        ],
+        "id": "e87cf19d-2206-49f2-80b4-d2cad1a85628",
+        "name": "Check Stage"
       }
     ],
     "connections": {
@@ -3066,16 +3182,11 @@
           ]
         ]
       },
-      "Update row in sheet in Google Sheets": {
-        "ai_tool": [
-          []
-        ]
-      },
       "AI Agent": {
         "main": [
           [
             {
-              "node": "Сообщение в WhatsApp",
+              "node": "Extract State",
               "type": "main",
               "index": 0
             }
@@ -3115,7 +3226,7 @@
         "main": [
           [
             {
-              "node": "AI Agent",
+              "node": "Get User State",
               "type": "main",
               "index": 0
             }
@@ -3330,20 +3441,76 @@
           ],
           []
         ]
+      },
+      "Get User State": {
+        "main": [
+          [
+            {
+              "node": "Inject State",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Inject State": {
+        "main": [
+          [
+            {
+              "node": "Check Stage",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract State": {
+        "main": [
+          [
+            {
+              "node": "Save User State",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Сообщение в WhatsApp",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Stage": {
+        "main": [
+          [
+            {
+              "node": "AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "AI Agent",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
       }
     },
-    "authors": "Denis Ovchar",
+    "authors": "Denis Karmarent",
     "name": null,
     "description": null,
     "autosaved": false,
     "workflowPublishHistory": [
       {
-        "createdAt": "2026-02-20T06:32:20.514Z",
-        "id": 23,
-        "workflowId": "TQkyDMEGaTVJOlvB",
-        "versionId": "09241303-a785-4314-8549-9a72e8c57b18",
+        "createdAt": "2026-02-20T15:05:15.601Z",
+        "id": 4,
+        "workflowId": "rC30SNQvTZG9Zhza",
+        "versionId": "29e0cbca-c8f5-46fd-aa80-a061593520ea",
         "event": "activated",
-        "userId": "5e6708ad-c08f-4c67-a285-fb076a605ef0"
+        "userId": "32ebda6a-f598-4a39-9108-5156d43057e3"
       }
     ]
   }
