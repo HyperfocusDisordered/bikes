@@ -1337,29 +1337,6 @@
       ],
       "id": "e87cf19d-2206-49f2-80b4-d2cad1a85628",
       "name": "Check Stage"
-    },
-    {
-      "parameters": {
-        "options": {},
-        "assignments": {
-          "assignments": [
-            {
-              "id": "64d45a5c-237c-487b-b60c-5792e7c7e494",
-              "name": "output",
-              "type": "string",
-              "value": "Ваша бронь оформлена ✅ Если нужно изменить бронирование — скоро с вами свяжется наш менеджер 😊"
-            }
-          ]
-        }
-      },
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [
-        3400,
-        -500
-      ],
-      "id": "7dfc3b5c-f1c6-46f1-b23f-8e4b31f72358",
-      "name": "Booked Response"
     }
   ],
   "connections": {
@@ -1736,7 +1713,7 @@
       "main": [
         [
           {
-            "node": "Booked Response",
+            "node": "AI Agent",
             "type": "main",
             "index": 0
           }
@@ -1744,17 +1721,6 @@
         [
           {
             "node": "AI Agent",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Booked Response": {
-      "main": [
-        [
-          {
-            "node": "Сообщение в WhatsApp",
             "type": "main",
             "index": 0
           }
