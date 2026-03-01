@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-02-28T18:59:53.489Z",
+  "updatedAt": "2026-03-01T08:00:24.198Z",
   "createdAt": "2026-02-20T13:11:32.879Z",
   "id": "rC30SNQvTZG9Zhza",
   "name": "Karma_Rent_Workers",
@@ -1217,7 +1217,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Evolution API -> ChatFlow format adapter\nconst raw = $input.first().json;\nconst body = raw.body || {};\n\nconst event = body.event || '';\nconst data = body.data || {};\nconst key = data.key || {};\nconst msg = data.message || {};\n\n// Bot messages via API — ignore completely\nif (event === 'send.message') return [];\n\n// Manager messages from WhatsApp app — mark state as \"оператор\"\nif (key.fromMe === true && event === 'messages.upsert') {\n  const jid = key.remoteJid || '';\n  if (jid) {\n    const supabaseUrl = 'https://upjyomatlonfgygoniir.supabase.co';\n    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwanlvbWF0bG9uZmd5Z29uaWlyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTA3MDE1OCwiZXhwIjoyMDg2NjQ2MTU4fQ.oDuT6Bc2mxKHpA1RvZzEa9Wb98qdTghPG4bqgRLvJ3k';\n\n    // First get current state\n    const rows = await this.helpers.httpRequest({\n      method: 'GET',\n      url: supabaseUrl + '/rest/v1/user_state?jid=eq.' + encodeURIComponent(jid) + '&select=state',\n      headers: { 'apikey': supabaseKey, 'Authorization': 'Bearer ' + supabaseKey },\n      json: true\n    });\n    const currentState = (rows.length > 0 && rows[0].state) ? rows[0].state : {};\n    currentState['этап'] = 'оператор';\n\n    // Upsert state\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: supabaseUrl + '/rest/v1/user_state',\n      headers: {\n        'apikey': supabaseKey,\n        'Authorization': 'Bearer ' + supabaseKey,\n        'Content-Type': 'application/json',\n        'Prefer': 'resolution=merge-duplicates'\n      },\n      body: { jid: jid, state: currentState, updated_at: new Date().toISOString() },\n      json: true\n    });\n  }\n  return [];\n}\n\n// Non-message events — skip\nif (event && event !== 'messages.upsert') return [];\n\nlet messageType = 'text';\nlet message = '';\nlet mediaData = { base64: '', url: '' };\n\nif (msg.conversation) {\n  message = msg.conversation;\n} else if (msg.extendedTextMessage) {\n  message = msg.extendedTextMessage.text || '';\n} else if (msg.imageMessage) {\n  messageType = 'image';\n  message = msg.imageMessage.caption || '';\n  mediaData.url = msg.imageMessage.url || '';\n  mediaData.mediaKey = msg.imageMessage.mediaKey || '';\n  mediaData.directPath = msg.imageMessage.directPath || '';\n  mediaData.mimetype = msg.imageMessage.mimetype || '';\n  mediaData.jpegThumbnail = msg.imageMessage.jpegThumbnail || '';\n  mediaData.messageId = key.id || '';\n  mediaData.remoteJid = key.remoteJid || '';\n} else if (msg.audioMessage) {\n  messageType = 'audio';\n  mediaData.url = msg.audioMessage.url || '';\n} else if (msg.documentMessage) {\n  messageType = 'document';\n  message = msg.documentMessage.fileName || '';\n  mediaData.url = msg.documentMessage.url || '';\n}\n\n// Skip empty messages (protocol events)\nif (!message && messageType === 'text') return [];\n\nreturn [{\n  json: {\n    body: {\n      metadata: {\n        remoteJid: key.remoteJid || '',\n        messageId: key.id || '',\n        timestamp: data.messageTimestamp || Math.floor(Date.now()/1000)\n      },\n      messageType: messageType,\n      message: message,\n      mediaData: mediaData\n    }\n  }\n}];"
+        "jsCode": "// Evolution API -> ChatFlow format adapter\nconst raw = $input.first().json;\nconst body = raw.body || {};\n\nconst event = body.event || '';\nconst data = body.data || {};\nconst key = data.key || {};\nconst msg = data.message || {};\n\n// Bot messages via API — ignore completely\nif (event === 'send.message') return [];\n\n// Manager messages from WhatsApp app — mark state as \"оператор\"\nif (key.fromMe === true && event === 'messages.upsert') {\n  const jid = key.remoteJid || '';\n  if (jid) {\n    const supabaseUrl = 'https://upjyomatlonfgygoniir.supabase.co';\n    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVwanlvbWF0bG9uZmd5Z29uaWlyIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTA3MDE1OCwiZXhwIjoyMDg2NjQ2MTU4fQ.oDuT6Bc2mxKHpA1RvZzEa9Wb98qdTghPG4bqgRLvJ3k';\n\n    // First get current state\n    const rows = await this.helpers.httpRequest({\n      method: 'GET',\n      url: supabaseUrl + '/rest/v1/user_state?jid=eq.' + encodeURIComponent(jid) + '&select=state',\n      headers: { 'apikey': supabaseKey, 'Authorization': 'Bearer ' + supabaseKey },\n      json: true\n    });\n    const currentState = (rows.length > 0 && rows[0].state) ? rows[0].state : {};\n    currentState['этап'] = 'оператор';\n\n    // Upsert state\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: supabaseUrl + '/rest/v1/user_state',\n      headers: {\n        'apikey': supabaseKey,\n        'Authorization': 'Bearer ' + supabaseKey,\n        'Content-Type': 'application/json',\n        'Prefer': 'resolution=merge-duplicates'\n      },\n      body: { jid: jid, state: currentState, updated_at: new Date().toISOString() },\n      json: true\n    });\n  }\n  return [];\n}\n\n// Partner messages — ignore\nconst pushName = (data.pushName || '').toLowerCase();\nif (pushName.includes('партн')) return [];\n\n// Non-message events — skip\nif (event && event !== 'messages.upsert') return [];\n\nlet messageType = 'text';\nlet message = '';\nlet mediaData = { base64: '', url: '' };\n\nif (msg.conversation) {\n  message = msg.conversation;\n} else if (msg.extendedTextMessage) {\n  message = msg.extendedTextMessage.text || '';\n} else if (msg.imageMessage) {\n  messageType = 'image';\n  message = msg.imageMessage.caption || '';\n  mediaData.url = msg.imageMessage.url || '';\n  mediaData.mediaKey = msg.imageMessage.mediaKey || '';\n  mediaData.directPath = msg.imageMessage.directPath || '';\n  mediaData.mimetype = msg.imageMessage.mimetype || '';\n  mediaData.jpegThumbnail = msg.imageMessage.jpegThumbnail || '';\n  mediaData.messageId = key.id || '';\n  mediaData.remoteJid = key.remoteJid || '';\n} else if (msg.audioMessage) {\n  messageType = 'audio';\n  mediaData.url = msg.audioMessage.url || '';\n} else if (msg.documentMessage) {\n  messageType = 'document';\n  message = msg.documentMessage.fileName || '';\n  mediaData.url = msg.documentMessage.url || '';\n}\n\n// Skip empty messages (protocol events)\nif (!message && messageType === 'text') return [];\n\nreturn [{\n  json: {\n    body: {\n      metadata: {\n        remoteJid: key.remoteJid || '',\n        messageId: key.id || '',\n        timestamp: data.messageTimestamp || Math.floor(Date.now()/1000)\n      },\n      messageType: messageType,\n      message: message,\n      mediaData: mediaData\n    }\n  }\n}];"
       },
       "name": "Webhook",
       "type": "n8n-nodes-base.code",
@@ -1923,9 +1923,9 @@
   "staticData": null,
   "meta": null,
   "pinData": null,
-  "versionId": "74aa325d-853f-4442-babb-9426ac710fa5",
-  "activeVersionId": "74aa325d-853f-4442-babb-9426ac710fa5",
-  "versionCounter": 637,
+  "versionId": "2439d26e-e471-4052-8066-94188b44a703",
+  "activeVersionId": "2439d26e-e471-4052-8066-94188b44a703",
+  "versionCounter": 640,
   "triggerCount": 1,
   "shared": [
     {
@@ -1978,9 +1978,9 @@
   ],
   "tags": [],
   "activeVersion": {
-    "updatedAt": "2026-02-28T18:59:53.493Z",
-    "createdAt": "2026-02-28T18:59:53.493Z",
-    "versionId": "74aa325d-853f-4442-babb-9426ac710fa5",
+    "updatedAt": "2026-03-01T08:00:24.242Z",
+    "createdAt": "2026-03-01T08:00:24.242Z",
+    "versionId": "2439d26e-e471-4052-8066-94188b44a703",
     "workflowId": "rC30SNQvTZG9Zhza",
     "nodes": [
       {
@@ -2844,8 +2844,7 @@
           -224
         ],
         "id": "phone-filter-node-new",
-        "name": "Phone Filter",
-        "disabled": true
+        "name": "Phone Filter"
       },
       {
         "parameters": {
@@ -3897,10 +3896,10 @@
     "autosaved": false,
     "workflowPublishHistory": [
       {
-        "createdAt": "2026-02-28T18:59:53.596Z",
-        "id": 233,
+        "createdAt": "2026-03-01T08:00:24.684Z",
+        "id": 234,
         "workflowId": "rC30SNQvTZG9Zhza",
-        "versionId": "74aa325d-853f-4442-babb-9426ac710fa5",
+        "versionId": "2439d26e-e471-4052-8066-94188b44a703",
         "event": "activated",
         "userId": "32ebda6a-f598-4a39-9108-5156d43057e3"
       }
