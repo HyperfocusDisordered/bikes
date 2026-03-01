@@ -838,21 +838,12 @@
           },
           "conditions": [
             {
-              "id": "filter-84586066091",
-              "leftValue": "={{ $json.body.metadata.remoteJid }}",
-              "rightValue": "84586066091",
+              "id": "always-true",
+              "leftValue": "={{ \"pass\" }}",
+              "rightValue": "pass",
               "operator": {
                 "type": "string",
-                "operation": "contains"
-              }
-            },
-            {
-              "id": "filter-79262579414",
-              "leftValue": "={{ $json.body.metadata.remoteJid }}",
-              "rightValue": "79262579414",
-              "operator": {
-                "type": "string",
-                "operation": "contains"
+                "operation": "equals"
               }
             }
           ],
